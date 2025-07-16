@@ -9,8 +9,11 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+import dj_database_url
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,14 +22,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x2gl3yitly0_5c=-d1)^m9vxvgqrq(%t3*9n8shi7ldf&936-m'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'default_secret_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-CORS_ALLOW_ALL_ORIGINS = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+
+CORS_ALLOWED_ORIGINS = [
+    "https://happykids.netlify.app",
+    "https://api-toy-rental.onrender.com",
+]
 
 
 ALLOWED_HOSTS = []
+# back 'api-toy-rental.onrender.com'
+#front 'https://happykids.netlify.app'
 
 
 # Application definition
@@ -76,12 +85,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    "default": dj_database_url.config(default=os.environ.get("DATABASE_URL"))
 }
 
 
