@@ -33,7 +33,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["toy-rental-backend.onrender.com"]
 # back 'api-toy-rental.onrender.com'
 #front 'https://happykids.netlify.app'
 
