@@ -1,0 +1,51 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+
+# Ambiente virtual
+venv/
+ENV/
+env/
+
+# Arquivos de banco SQLite (se estiver usando)
+*.sqlite3
+
+# Arquivos de migrations já versionados (você pode querer manter ou ignorar)
+#migrations/*.pyc
+#migrations/__pycache__/
+
+# Configurações locais
+*.env
+*.local
+.env
+
+# Pasta static (se for gerada automaticamente)
+static/
+staticfiles/
+
+# Arquivos do sistema (Windows)
+Thumbs.db
+Desktop.ini
+
+# Logs e arquivos temporários
+*.log
+*.pot
+*.pyc
+*.pyo
+*.orig
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Arquivos de testes coverage
+.coverage
+htmlcov/
+
+# Outros
+.DS_Store
