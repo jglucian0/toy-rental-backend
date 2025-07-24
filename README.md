@@ -1,4 +1,4 @@
-# 🎪 Toy Rental ERP – Backend
+# Toy Rental ERP – Backend
 
 **Toy Rental ERP** é um sistema completo de gestão desenvolvido para empresas de locação de brinquedos infláveis e serviços para festas infantis. Este repositório contém o backend da aplicação, desenvolvido com **Django**, responsável por toda a lógica de negócio, persistência de dados e funcionalidades administrativas.
 
