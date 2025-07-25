@@ -13,7 +13,7 @@ class Cliente(models.Model):
     telefone = models.CharField(max_length=15)  # Orbigatório
     status = models.CharField(
         max_length=7, choices=STATUS_CHOICES, default='ativo')  # Orbigatório
-    cep = models.CharField(max_length=8, null=True, blank=True)
+    cep = models.CharField(max_length=9, null=True, blank=True)
     endereco = models.CharField(max_length=100)  # Orbigatório
     numero = models.CharField(max_length=5, null=True, blank=True)
     cidade = models.CharField(max_length=100, null=True, blank=True)

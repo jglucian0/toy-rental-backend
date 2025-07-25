@@ -20,6 +20,13 @@ class ClienteListCreateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class ClientesAtivosAPIView(APIView):
+    def get(self, request):
+        clientes = Cliente.objects.filter(status='ativo')
+        serializer = ClienteSerializer(clientes, many=True)
+        return Response(serializer.data)
+
+
 class ClienteDetailAPIView(APIView):
     def get_object(self, id):
         try:
@@ -43,7 +50,7 @@ class ClienteDetailAPIView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
-    
+
     def delete(self, request, id):
         cliente = self.get_object(id)
         if not cliente:
