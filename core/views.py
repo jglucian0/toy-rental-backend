@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente
-from .serializers import ClienteSerializer
+from .models import Cliente, Brinquedo
+from .serializers import ClienteSerializer, BrinquedoSerializer
 
 
 class ClienteListCreateAPIView(APIView):
@@ -57,3 +57,10 @@ class ClienteDetailAPIView(APIView):
             return Response({'erro': 'Cliente não encontrado'}, status=404)
         cliente.delete()
         return Response(status=204)
+
+
+class BrinquedoListCreateAPIView(APIView):
+    def get(self, request):
+        brinquedos = Brinquedo.objects.all()
+        serializer = BrinquedoSerializer(brinquedos, many=True)
+        return Response(serializer.data)
