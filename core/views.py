@@ -64,10 +64,42 @@ class BrinquedoListCreateAPIView(APIView):
         brinquedos = Brinquedo.objects.all()
         serializer = BrinquedoSerializer(brinquedos, many=True)
         return Response(serializer.data)
-    
+
     def post(self, request):
         serializer = BrinquedoSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BrinquedoDetailAPIView(APIView):
+    def get_object(self, id):
+        try:
+            return Brinquedo.objects.get(id=id)
+        except Brinquedo.DoesNotExist:
+            return None
+
+    def get(self, request, id):
+        brinquedo = self.get_object(id)
+        if not brinquedo:
+            return Response({'erro': 'Brinquedo não encontrado'}, status=404)
+        serializer = BrinquedoSerializer(brinquedo)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        brinquedo = self.get_object(id)
+        if not brinquedo:
+            return Response({'erro': 'Brinquedo não encontrado'}, status=404)
+        serializer = BrinquedoSerializer(brinquedo, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, id):
+        brinquedo = self.get_object(id)
+        if not brinquedo:
+            return Response({'erro': 'Brinquedo não encontrado'}, status=404)
+        brinquedo.delete()
+        return Response(status=204)

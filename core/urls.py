@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ClienteListCreateAPIView, ClienteDetailAPIView, ClientesAtivosAPIView, BrinquedoListCreateAPIView
+from .views import ClienteListCreateAPIView, ClienteDetailAPIView, ClientesAtivosAPIView, BrinquedoListCreateAPIView, BrinquedoDetailAPIView
 
 urlpatterns = [
     path('clientes/', ClienteListCreateAPIView.as_view(),
@@ -10,4 +10,6 @@ urlpatterns = [
          name='clientes-ativos'),
     path('brinquedos/', BrinquedoListCreateAPIView.as_view(),
          name='brinquedo-list-create'),
+    path('brinquedos/<int:id>/', BrinquedoDetailAPIView.as_view(),
+         name='brinquedo-detail'),
 ]
