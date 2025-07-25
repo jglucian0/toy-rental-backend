@@ -8,9 +8,9 @@ class Cliente(models.Model):
     ]
 
     nome = models.CharField(max_length=100)  # Orbigatório
-    documento = models.CharField(max_length=14)  # Orbigatório
+    documento = models.CharField(max_length=18)  # Orbigatório
     email = models.EmailField(null=True, blank=True)
-    telefone = models.CharField(max_length=11)  # Orbigatório
+    telefone = models.CharField(max_length=15)  # Orbigatório
     status = models.CharField(
         max_length=7, choices=STATUS_CHOICES, default='ativo')  # Orbigatório
     cep = models.CharField(max_length=8, null=True, blank=True)
