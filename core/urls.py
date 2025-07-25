@@ -1,15 +1,28 @@
 from django.urls import path
-from .views import ClienteListCreateAPIView, ClienteDetailAPIView, ClientesAtivosAPIView, BrinquedoListCreateAPIView, BrinquedoDetailAPIView
+from .views import (
+    ClienteListCreateAPIView,
+    ClienteDetailAPIView,
+    ClientesAtivosAPIView,
+    BrinquedoListCreateAPIView,
+    BrinquedoDetailAPIView
+)
 
 urlpatterns = [
+    # Lista todos os clientes ou cria um novo
     path('clientes/', ClienteListCreateAPIView.as_view(),
          name='cliente-list-create'),
-    path('clientes/<int:id>/', ClienteDetailAPIView.as_view(),
-         name='cliente-detail'),
-    path('clientes/ativos/', ClientesAtivosAPIView.as_view(),
-         name='clientes-ativos'),
+
+    # Detalhes, edição ou exclusão de um cliente específico
+    path('clientes/<int:id>/', ClienteDetailAPIView.as_view(), name='cliente-detail'),
+
+    # Lista apenas os clientes com status ativo
+    path('clientes/ativos/', ClientesAtivosAPIView.as_view(), name='clientes-ativos'),
+
+    # Lista todos os brinquedos ou cria um novo
     path('brinquedos/', BrinquedoListCreateAPIView.as_view(),
          name='brinquedo-list-create'),
+
+    # Detalhes, edição ou exclusão de um brinquedo específico
     path('brinquedos/<int:id>/', BrinquedoDetailAPIView.as_view(),
          name='brinquedo-detail'),
 ]

@@ -6,6 +6,7 @@ from .models import Cliente, Brinquedo
 from .serializers import ClienteSerializer, BrinquedoSerializer
 
 
+# Lista todos os clientes ou cria um novo
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.all()
@@ -20,6 +21,7 @@ class ClienteListCreateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Lista só os clientes com status "ativo"
 class ClientesAtivosAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.filter(status='ativo')
@@ -27,7 +29,9 @@ class ClientesAtivosAPIView(APIView):
         return Response(serializer.data)
 
 
+# Detalhe, edição e exclusão de cliente específico
 class ClienteDetailAPIView(APIView):
+    # Função interna pra buscar cliente ou retornar None
     def get_object(self, id):
         try:
             return Cliente.objects.get(id=id)
@@ -59,6 +63,7 @@ class ClienteDetailAPIView(APIView):
         return Response(status=204)
 
 
+# Lista todos os brinquedos ou cria um novo
 class BrinquedoListCreateAPIView(APIView):
     def get(self, request):
         brinquedos = Brinquedo.objects.all()
@@ -73,7 +78,9 @@ class BrinquedoListCreateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Detalhe, edição e exclusão de brinquedo específico
 class BrinquedoDetailAPIView(APIView):
+    # Busca o brinquedo ou retorna None
     def get_object(self, id):
         try:
             return Brinquedo.objects.get(id=id)

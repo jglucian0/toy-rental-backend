@@ -8,7 +8,8 @@ class ClienteAdmin(admin.ModelAdmin):
     list_filter = ['cidade', 'uf']
     search_fields = ['nome', 'documento', 'email']
     list_per_page = 20
-    
+
+
 @admin.register(Brinquedo)
 class BrinquedoAdmin(admin.ModelAdmin):
     list_display = ['nome']

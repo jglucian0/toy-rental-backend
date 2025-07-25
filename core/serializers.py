@@ -2,17 +2,19 @@ from rest_framework import serializers
 from .models import Cliente, Brinquedo
 
 
+# Serializa todos os campos do Cliente + exibe status legível (ex: 'ativo' → 'Ativo')
 class ClienteSerializer(serializers.ModelSerializer):
     status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Cliente
-        fields = '__all__'
+        fields = '__all__'  # inclui todos os campos do modelo
 
     def get_status_display(self, obj):
         return obj.get_status_display()
 
 
+# Serializa todos os campos do Brinquedo + status e voltagem legíveis
 class BrinquedoSerializer(serializers.ModelSerializer):
     status_display = serializers.SerializerMethodField()
     voltagem_display = serializers.SerializerMethodField()
