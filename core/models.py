@@ -16,13 +16,12 @@ class Cliente(models.Model):
         # Select (Ativo/Inativo)
         max_length=7, choices=STATUS_CHOICES, default='ativo')
 
-    cep = models.CharField(max_length=9, null=True, blank=True)  # Opcional
+    cep = models.CharField(max_length=9)  # Obrigatório
     endereco = models.CharField(max_length=100)  # Obrigatório
-    numero = models.CharField(max_length=5, null=True, blank=True)  # Opcional
+    numero = models.CharField(max_length=5, default='S/N')  # Obrigatório
     cidade = models.CharField(
-        max_length=100, null=True, blank=True)  # Opcional
-    uf = models.CharField(max_length=2, null=True,
-                          blank=True)  # Opcional (ex: PR)
+        max_length=100)  # Obrigatório
+    uf = models.CharField(max_length=2)  # Obrigatório
     complemento = models.CharField(
         max_length=100, null=True, blank=True)  # Opcional
 
@@ -43,12 +42,12 @@ class Brinquedo(models.Model):
         ('220v', '220v'),
         ('bivolt', 'Bivolt'),
     ]
-    
+
     ENERGIA_CHOICES = [
         ('sim', 'Sim'),
         ('nao', 'Não'),
     ]
-    
+
     INFLAVEL_CHOICES = [
         ('sim', 'Sim'),
         ('nao', 'Não'),
@@ -59,7 +58,8 @@ class Brinquedo(models.Model):
         max_digits=8, decimal_places=2)  # Ex: 120.00
     qtd_total = models.IntegerField()  # Quantos brinquedos no total
     qtd_disponivel = models.IntegerField()  # Quantos disponíveis pra alugar
-    status = models.CharField(choices=STATUS_CHOICES, default='ativo')  # Ativo/Inativo
+    status = models.CharField(choices=STATUS_CHOICES,
+                              default='ativo')  # Ativo/Inativo
 
     tamanho = models.CharField(max_length=10)  # Ex: "3x3m"
     voltagem = models.CharField(
@@ -73,3 +73,65 @@ class Brinquedo(models.Model):
 
     def __str__(self):
         return f'{self.nome} - {self.valor_diaria}'
+
+
+class Locacao(models.Model):
+    DURACAO_CHOICES = [
+        ('3h', '3 hora'),
+        ('4h', '4 hora'),
+        ('5h', '5 horas'),
+        ('6h', '6 horas'),
+        ('7h', '7 horas'),
+        ('8h', '8 horas'),
+        ('9h', '9 horas'),
+        ('10h', '10 horas'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),  # Agendado, mas ainda sem sinal (30%)
+        ('confirmado', 'Confirmado'),  # Pagamento parcial feito
+        ('montado', 'Montado'),  # Brinquedos já estão no local e montados
+        ('recolher', 'Recolher'),  # Festa acabou, falta recolher os brinquedos
+        ('finalizado', 'Finalizado'),  # Tudo concluído, pagamento total feito
+    ]
+
+    METODOS_PAGAMENTO_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('debito', 'Débito'),
+        ('credito', 'Crédito'),
+        ('pix', 'Pix'),
+    ]
+
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT)
+    brinquedos = models.ManyToManyField(Brinquedo)
+    data_festa = models.DateField()
+    hora_festa = models.TimeField()
+    duracao = models.CharField(choices=DURACAO_CHOICES, default='8h')
+    hora_montagem = models.TimeField()
+    data_desmontagem = models.DateField()
+    hora_desmontagem = models.TimeField()
+    montador = models.CharField(max_length=100)
+    valor_entrada = models.DecimalField(max_digits=8, decimal_places=2)
+    valor_total = models.DecimalField(max_digits=8, decimal_places=2)
+    qtd_parcelas = models.IntegerField(default='1')
+    status = models.CharField(choices=STATUS_CHOICES, default='pendente')
+    metodo_pagamento = models.CharField(
+        choices=METODOS_PAGAMENTO_CHOICES, default='pix')
+    descricao = models.TextField(null=True, blank=True)
+
+    # Endereço da locação (caso diferente do cliente)
+    cep = models.CharField(max_length=9)  # Obrigatório
+    endereco = models.CharField(max_length=100)  # Obrigatório
+    numero = models.CharField(max_length=5, default='S/N')  # Obrigatório
+    cidade = models.CharField(
+        max_length=100)  # Obrigatório
+    uf = models.CharField(max_length=2)  # Obrigatório
+    complemento = models.CharField(
+        max_length=100, null=True, blank=True)  # Opcional
+
+    def __str__(self):
+        try:
+            brinquedos = ", ".join([b.nome for b in self.brinquedos.all()])
+            return f'{self.cliente.nome} - {self.data_festa} a {self.data_desmontagem} - {brinquedos} ({self.get_status_display()})'
+        except Exception:
+            return f'{self.cliente.nome} - {self.data_festa} a {self.data_desmontagem} - (sem brinquedos) ({self.get_status_display()})'
