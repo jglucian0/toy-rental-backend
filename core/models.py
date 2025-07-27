@@ -43,20 +43,31 @@ class Brinquedo(models.Model):
         ('220v', '220v'),
         ('bivolt', 'Bivolt'),
     ]
+    
+    ENERGIA_CHOICES = [
+        ('sim', 'Sim'),
+        ('nao', 'Não'),
+    ]
+    
+    INFLAVEL_CHOICES = [
+        ('sim', 'Sim'),
+        ('nao', 'Não'),
+    ]
 
     nome = models.CharField(max_length=100)  # Nome do brinquedo
     valor_diaria = models.DecimalField(
         max_digits=8, decimal_places=2)  # Ex: 120.00
     qtd_total = models.IntegerField()  # Quantos brinquedos no total
     qtd_disponivel = models.IntegerField()  # Quantos disponíveis pra alugar
-    status = models.CharField(choices=STATUS_CHOICES,
-                              default='ativo')  # Ativo/Inativo
+    status = models.CharField(choices=STATUS_CHOICES, default='ativo')  # Ativo/Inativo
 
     tamanho = models.CharField(max_length=10)  # Ex: "3x3m"
     voltagem = models.CharField(
         choices=VOLTAGEM_CHOICES, null=True, blank=True)  # Opcional
-    energia = models.BooleanField(null=True, blank=True)  # Usa energia?
-    inflavel = models.BooleanField(null=True, blank=True)  # É inflável?
+    energia = models.CharField(
+        choices=ENERGIA_CHOICES, null=True, blank=True)  # Usa energia?
+    inflavel = models.CharField(
+        choices=INFLAVEL_CHOICES, null=True, blank=True)  # É inflável?
     # Texto descritivo (opcional)
     descricao = models.TextField(null=True, blank=True)
 
