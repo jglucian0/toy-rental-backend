@@ -30,11 +30,11 @@ class BrinquedoSerializer(serializers.ModelSerializer):
         return obj.get_voltagem_display()
 
 
-# Serializa todos os campos do Brinquedo + status e voltagem legíveis
+# Serializa todos os campos da Locacao + status legível
 class LocacaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Locacao
         fields = '__all__'
-        
+
     def get_status_display(self, obj):
         return obj.get_status_display()
