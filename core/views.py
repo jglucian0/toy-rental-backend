@@ -2,11 +2,13 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente, Brinquedo
-from .serializers import ClienteSerializer, BrinquedoSerializer
+from .models import Cliente, Brinquedo, Locacao
+from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer
 
-
+# Cliente API
 # Lista todos os clientes ou cria um novo
+
+
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.all()
@@ -62,8 +64,10 @@ class ClienteDetailAPIView(APIView):
         cliente.delete()
         return Response(status=204)
 
-
+# Brinquedos
 # Lista todos os brinquedos ou cria um novo
+
+
 class BrinquedoListCreateAPIView(APIView):
     def get(self, request):
         brinquedos = Brinquedo.objects.all()
@@ -110,3 +114,19 @@ class BrinquedoDetailAPIView(APIView):
             return Response({'erro': 'Brinquedo não encontrado'}, status=404)
         brinquedo.delete()
         return Response(status=204)
+
+
+# Locações
+# Lista todas as locações ou cria uma nova
+class LocacoesListCreateAPIView(APIView):
+    def get(self, request):
+        locacoes = Locacao.objects.all()
+        serializer = LocacaoSerializer(locacoes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        locacoes = LocacaoSerializer(data=request.data)
+        if locacoes.is_valid():
+            locacoes.save()
+            return Response(locacoes.data, status=status.HTTP_201_CREATED)
+        return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
