@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cliente, Brinquedo
+from .models import Cliente, Brinquedo, Locacao
 
 
 @admin.register(Cliente)
@@ -14,4 +14,12 @@ class ClienteAdmin(admin.ModelAdmin):
 class BrinquedoAdmin(admin.ModelAdmin):
     list_display = ['nome']
     search_fields = ['nome']
+    list_per_page = 20
+
+
+@admin.register(Locacao)
+class LocacaoAdmin(admin.ModelAdmin):
+    list_display = ['cliente', 'brinquedo', 'data_locacao', 'data_devolucao']
+    list_filter = ['data_locacao', 'data_devolucao']
+    search_fields = ['cliente__nome', 'brinquedo__nome']
     list_per_page = 20
