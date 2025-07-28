@@ -19,7 +19,7 @@ class BrinquedoAdmin(admin.ModelAdmin):
 
 @admin.register(Locacao)
 class LocacaoAdmin(admin.ModelAdmin):
-    list_display = ['cliente', 'brinquedo', 'data_locacao', 'data_devolucao']
-    list_filter = ['data_locacao', 'data_devolucao']
-    search_fields = ['cliente__nome', 'brinquedo__nome']
+    list_display = ['cliente','data_festa', 'data_desmontagem']
+    list_filter = ['data_festa', 'data_desmontagem']
+    search_fields = ['cliente__nome']
     list_per_page = 20
