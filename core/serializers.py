@@ -32,6 +32,9 @@ class BrinquedoSerializer(serializers.ModelSerializer):
 
 # Serializa todos os campos da Locacao + status legível
 class LocacaoSerializer(serializers.ModelSerializer):
+    brinquedos = BrinquedoSerializer(many=True, read_only=True)
+    cliente = ClienteSerializer(read_only=True)
+    
     class Meta:
         model = Locacao
         fields = '__all__'
