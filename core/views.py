@@ -7,8 +7,6 @@ from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializ
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
-
-
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.all()
@@ -66,8 +64,6 @@ class ClienteDetailAPIView(APIView):
 
 # Brinquedos
 # Lista todos os brinquedos ou cria um novo
-
-
 class BrinquedoListCreateAPIView(APIView):
     def get(self, request):
         brinquedos = Brinquedo.objects.all()
@@ -116,6 +112,40 @@ class BrinquedoDetailAPIView(APIView):
         return Response(status=204)
 
 
+# Lista todos os brinquedos disponíveis baseado na data
+class BrinquedosDisponiveisAPIView(APIView):
+    def get(self, request):
+        data_festa = request.GET.get('data_festa')
+        data_desmontagem = request.GET.get('data_desmontagem')
+
+        if not data_festa or not data_desmontagem:
+            return Response({"erro": "As datas são obrigatórias."}, status=400)
+
+        try:
+            data_festa = datetime.strptime(data_festa, "%Y-%m-%d").date()
+            data_desmontagem = datetime.strptime(
+                data_desmontagem, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"erro": "Formato de data inválido."}, status=400)
+
+        # Busca os brinquedos que já estão locados nesse período
+        locacoes_conflitantes = Locacao.objects.filter(
+            data_festa__lte=data_desmontagem,
+            data_desmontagem__gte=data_festa
+        ).prefetch_related('brinquedos')
+
+        # Coleta os IDs dos brinquedos já locados
+        ids_indisponiveis = set()
+        for loc in locacoes_conflitantes:
+            ids_indisponiveis.update(
+                loc.brinquedos.values_list('id', flat=True))
+
+        # Filtra brinquedos que NÃO estão nesses IDs
+        brinquedos_disponiveis = Brinquedo.objects.exclude(
+            id__in=ids_indisponiveis)
+        serializer = BrinquedoSerializer(brinquedos_disponiveis, many=True)
+        return Response(serializer.data)
+
 # Locações
 # Lista todas as locações ou cria uma nova
 class LocacoesListCreateAPIView(APIView):
@@ -130,23 +160,24 @@ class LocacoesListCreateAPIView(APIView):
             locacoes.save()
             return Response(locacoes.data, status=status.HTTP_201_CREATED)
         return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
 class LocacoesDetailAPIView(APIView):
     # Busca a locação ou retorna None
-    def get_object(self,id):
+    def get_object(self, id):
         festas = Locacao.objects.get(id=id)
         try:
             return festas
         except Locacao.DoesNotExist:
             return None
-        
+
     def get(self, request, id):
         festa = self.get_object(id)
         if not festa:
             return Response({'erro': 'Locação não encontrada'}, status=404)
         serializer = LocacaoSerializer(festa)
         return Response(serializer.data)
-    
+
     def put(self, request, id):
         festa = self.get_object(id)
         if not festa:
@@ -156,16 +187,10 @@ class LocacoesDetailAPIView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response({'erro': 'Dados inválidos'}, status=400)
-    
+
     def delete(self, request, id):
         festa = self.get_object(id=id)
         if not festa:
             return Response({'erro': 'Locação não encontrada'}, status=404)
         festa.delete()
         return Response(status=204)
-
-
-        
-    
-    
-    
