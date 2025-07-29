@@ -106,7 +106,7 @@ class BrinquedoDetailAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        return Response({'erro': 'Dados inválidos'}, status=400)
 
     def delete(self, request, id):
         brinquedo = self.get_object(id)
@@ -130,3 +130,42 @@ class LocacoesListCreateAPIView(APIView):
             locacoes.save()
             return Response(locacoes.data, status=status.HTTP_201_CREATED)
         return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class LocacoesDetailAPIView(APIView):
+    # Busca a locação ou retorna None
+    def get_object(self,id):
+        festas = Locacao.objects.get(id=id)
+        try:
+            return festas
+        except Locacao.DoesNotExist:
+            return None
+        
+    def get(self, request, id):
+        festa = self.get_object(id)
+        if not festa:
+            return Response({'erro': 'Locação não encontrada'}, status=404)
+        serializer = LocacaoSerializer(festa)
+        return Response(serializer.data)
+    
+    def put(self, request, id):
+        festa = self.get_object(id)
+        if not festa:
+            return Response({'erro': 'Locação não encontrada'}, status=404)
+        serializer = LocacaoSerializer(festa, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response({'erro': 'Dados inválidos'}, status=400)
+    
+    def delete(self, request, id):
+        festa = self.get_object(id=id)
+        if not festa:
+            return Response({'erro': 'Locação não encontrada'}, status=404)
+        festa.delete()
+        return Response(status=204)
+
+
+        
+    
+    
+    

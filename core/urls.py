@@ -6,6 +6,7 @@ from .views import (
     BrinquedoListCreateAPIView,
     BrinquedoDetailAPIView,
     LocacoesListCreateAPIView,
+    LocacoesDetailAPIView,
 )
 
 urlpatterns = [
@@ -30,4 +31,8 @@ urlpatterns = [
     # Lista todas as locações ou cria uma nova
     path('locacoes/', LocacoesListCreateAPIView.as_view(),
          name='locacoes-list-create'),
+    
+    # Detalhes, edição ou exclusão de uma locação específica
+    path('locacoes/<int:id>/', LocacoesDetailAPIView.as_view(),
+         name='locacoes-detail'),
 ]
