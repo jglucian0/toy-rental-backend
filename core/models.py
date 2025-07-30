@@ -113,6 +113,8 @@ class Locacao(models.Model):
     montador = models.CharField(max_length=100)
     valor_entrada = models.DecimalField(max_digits=8, decimal_places=2)
     valor_total = models.DecimalField(max_digits=8, decimal_places=2)
+    acrescimos = models.DecimalField(max_digits=8, decimal_places=2)
+    descontos = models.DecimalField(max_digits=8, decimal_places=2)
     qtd_parcelas = models.IntegerField(default='1')
     status = models.CharField(choices=STATUS_CHOICES, default='pendente')
     metodo_pagamento = models.CharField(
