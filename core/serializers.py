@@ -32,15 +32,11 @@ class BrinquedoSerializer(serializers.ModelSerializer):
 
 # Serializa todos os campos da Locacao + status legível
 class LocacaoSerializer(serializers.ModelSerializer):
-    cliente_id = serializers.PrimaryKeyRelatedField(
-        queryset=Cliente.objects.all(), source='cliente', write_only=True
-    )
     brinquedos_ids = serializers.PrimaryKeyRelatedField(
         queryset=Brinquedo.objects.all(), many=True, source='brinquedos', write_only=True
     )
     
     brinquedos = BrinquedoSerializer(many=True, read_only=True)
-    cliente = ClienteSerializer(read_only=True)
     
     class Meta:
         model = Locacao
