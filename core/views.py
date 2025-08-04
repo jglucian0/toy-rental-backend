@@ -1,16 +1,20 @@
-from rest_framework.views import APIView
 from django.template.loader import render_to_string
-from rest_framework.response import Response
 from django.http import HttpResponse
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework import status
-from .models import Cliente, Brinquedo, Locacao
-from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer
+from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser
+from .models import Cliente, Brinquedo, Locacao, ContratoAnexo
+from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer, ContratoAnexoSerializer
 from xhtml2pdf import pisa
 from decimal import Decimal
 from datetime import datetime, date
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
+
+
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.all()
@@ -205,17 +209,18 @@ class LocacoesDetailAPIView(APIView):
 
 
 # Contrato PDF
-# Gera o PDF do contrato da festa
-class ContratoFestaPDFView(APIView):
-    def get(self, request, festa_id):
+# Gera o PDF do contrato da locação
+class ContratoLocacaoPDFView(APIView):
+    def get(self, request, locacao_id):
         try:
-            festa = Locacao.objects.select_related('cliente').get(id=festa_id)
-            brinquedos = festa.brinquedos.all()
+            locacao = Locacao.objects.select_related(
+                'cliente').get(id=locacao_id)
+            brinquedos = locacao.brinquedos.all()
             brinquedo_nomes = ", ".join([b.nome for b in brinquedos])
 
             # Valores seguros
-            acrescimos = festa.acrescimos or Decimal("0.00")
-            descontos = festa.descontos or Decimal("0.00")
+            acrescimos = locacao.acrescimos or Decimal("0.00")
+            descontos = locacao.descontos or Decimal("0.00")
 
             # Soma dos brinquedos
             valor_brinquedos = sum([b.valor_diaria for b in brinquedos])
@@ -224,13 +229,13 @@ class ContratoFestaPDFView(APIView):
             total = valor_brinquedos + acrescimos - descontos
 
             context = {
-                "cliente_nome": festa.cliente.nome,
-                "cliente_cpf": festa.cliente.documento,
+                "cliente_nome": locacao.cliente.nome,
+                "cliente_cpf": locacao.cliente.documento,
                 "brinquedos": brinquedo_nomes,
-                "endereco": festa.endereco,
-                "numero": festa.numero,
-                "complemento": festa.complemento or "",
-                "data_evento": festa.data_festa.strftime("%d/%m/%Y"),
+                "endereco": locacao.endereco,
+                "numero": locacao.numero,
+                "complemento": locacao.complemento or "",
+                "data_evento": locacao.data_festa.strftime("%d/%m/%Y"),
 
                 # Valores formatados
                 "valor_brinquedos": f"{valor_brinquedos:.2f}",
@@ -246,8 +251,7 @@ class ContratoFestaPDFView(APIView):
 
             html = render_to_string("contrato.html", context)
             response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="Contrato-{festa.cliente.nome}.pdf"'
-            response['X-Cliente-Nome'] = festa.cliente.nome
+            response['Content-Disposition'] = f'attachment; filename="Contrato-{locacao.cliente.nome}.pdf"'
 
             pisa_status = pisa.CreatePDF(html, dest=response)
 
@@ -257,3 +261,36 @@ class ContratoFestaPDFView(APIView):
 
         except Locacao.DoesNotExist:
             return Response({"erro": "Festa não encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+
+#
+class ContratoAnexoAPIView(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser]
+
+    def get(self, request, locacao_id):
+        try:
+            anexo = ContratoAnexo.objects.get(locacao_id=locacao_id)
+            serializer = ContratoAnexoSerializer(anexo)
+            return Response(serializer.data)
+        except ContratoAnexo.DoesNotExist:
+            return Response({"erro": "Anexo não encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, locacao_id):
+        try:
+            anexo, created = ContratoAnexo.objects.get_or_create(
+                locacao_id=locacao_id)
+            anexo.arquivo = request.FILES["arquivo"]
+            anexo.save()
+            return Response({"mensagem": "Anexo salvo com sucesso"}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"erro": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, locacao_id):
+        try:
+            anexo = ContratoAnexo.objects.get(locacao_id=locacao_id)
+            anexo.arquivo.delete()
+            anexo.delete()
+            return Response({"mensagem": "Anexo excluído com sucesso"}, status=status.HTTP_204_NO_CONTENT)
+        except ContratoAnexo.DoesNotExist:
+            return Response({"erro": "Anexo não encontrado"}, status=status.HTTP_404_NOT_FOUND)
