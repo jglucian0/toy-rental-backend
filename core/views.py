@@ -1,14 +1,13 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
+from django.template.loader import render_to_string
 from rest_framework.response import Response
+from django.http import HttpResponse
 from rest_framework import status
 from .models import Cliente, Brinquedo, Locacao
-from datetime import datetime, date
-from xhtml2pdf import pisa
-from django.template.loader import render_to_string
-from decimal import Decimal
-from django.http import HttpResponse
 from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer
+from xhtml2pdf import pisa
+from decimal import Decimal
+from datetime import datetime, date
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
@@ -66,6 +65,7 @@ class ClienteDetailAPIView(APIView):
             return Response({'erro': 'Cliente não encontrado'}, status=404)
         cliente.delete()
         return Response(status=204)
+
 
 # Brinquedos
 # Lista todos os brinquedos ou cria um novo
@@ -152,6 +152,7 @@ class BrinquedosDisponiveisAPIView(APIView):
         serializer = BrinquedoSerializer(brinquedos_disponiveis, many=True)
         return Response(serializer.data)
 
+
 # Locações
 # Lista todas as locações ou cria uma nova
 class LocacoesListCreateAPIView(APIView):
@@ -166,6 +167,7 @@ class LocacoesListCreateAPIView(APIView):
             locacoes.save()
             return Response(locacoes.data, status=status.HTTP_201_CREATED)
         return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Detalhe, edição e exclusão de locação específico
 class LocacoesDetailAPIView(APIView):
@@ -200,8 +202,8 @@ class LocacoesDetailAPIView(APIView):
             return Response({'erro': 'Locação não encontrada'}, status=404)
         festa.delete()
         return Response(status=204)
-    
-    
+
+
 # Contrato PDF
 # Gera o PDF do contrato da festa
 class ContratoFestaPDFView(APIView):
