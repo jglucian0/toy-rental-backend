@@ -46,7 +46,7 @@ class LocacaoSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
 
-# Serializa os anexos do contrato de locação
+# Serializa o anexo do contrato de locação
 class ContratoAnexoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContratoAnexo
