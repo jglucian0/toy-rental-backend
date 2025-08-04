@@ -137,3 +137,11 @@ class Locacao(models.Model):
             return f'{self.cliente.nome} - {self.data_festa} a {self.data_desmontagem} - {brinquedos} ({self.get_status_display()})'
         except Exception:
             return f'{self.cliente.nome} - {self.data_festa} a {self.data_desmontagem} - (sem brinquedos) ({self.get_status_display()})'
+
+class ContratoAnexo(models.Model):
+    locacao = models.ForeignKey(Locacao, on_delete=models.CASCADE)
+    arquivo = models.FileField(upload_to='contratos_anexos/')
+    data_upload = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Anexo: {self.arquivo.name} - {self.locacao}'

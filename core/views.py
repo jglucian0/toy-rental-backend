@@ -247,6 +247,7 @@ class ContratoFestaPDFView(APIView):
             html = render_to_string("contrato.html", context)
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="Contrato-{festa.cliente.nome}.pdf"'
+            response['X-Cliente-Nome'] = festa.cliente.nome
 
             pisa_status = pisa.CreatePDF(html, dest=response)
 
