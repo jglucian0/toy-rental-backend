@@ -3,7 +3,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Cliente, Brinquedo, Locacao
-from datetime import datetime
+from datetime import datetime, date
+from xhtml2pdf import pisa
+from django.template.loader import render_to_string
+from decimal import Decimal
+from django.http import HttpResponse
 from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer
 
 # Cliente API
@@ -123,7 +127,8 @@ class BrinquedosDisponiveisAPIView(APIView):
             return Response({"erro": "As datas são obrigatórias."}, status=400)
 
         try:
-            data_festa = datetime.strptime(data_festa, "%Y-%m-%d").date()
+            data_festa = datetime.strptime(
+                data_festa, "%Y-%m-%d").date()
             data_desmontagem = datetime.strptime(
                 data_desmontagem, "%Y-%m-%d").date()
         except ValueError:
@@ -162,7 +167,7 @@ class LocacoesListCreateAPIView(APIView):
             return Response(locacoes.data, status=status.HTTP_201_CREATED)
         return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+# Detalhe, edição e exclusão de locação específico
 class LocacoesDetailAPIView(APIView):
     # Busca a locação ou retorna None
     def get_object(self, id):
@@ -195,3 +200,57 @@ class LocacoesDetailAPIView(APIView):
             return Response({'erro': 'Locação não encontrada'}, status=404)
         festa.delete()
         return Response(status=204)
+    
+    
+# Contrato PDF
+# Gera o PDF do contrato da festa
+class ContratoFestaPDFView(APIView):
+    def get(self, request, festa_id):
+        try:
+            festa = Locacao.objects.select_related('cliente').get(id=festa_id)
+            brinquedos = festa.brinquedos.all()
+            brinquedo_nomes = ", ".join([b.nome for b in brinquedos])
+
+            # Valores seguros
+            acrescimos = festa.acrescimos or Decimal("0.00")
+            descontos = festa.descontos or Decimal("0.00")
+
+            # Soma dos brinquedos
+            valor_brinquedos = sum([b.valor_diaria for b in brinquedos])
+
+            # Total final
+            total = valor_brinquedos + acrescimos - descontos
+
+            context = {
+                "cliente_nome": festa.cliente.nome,
+                "cliente_cpf": festa.cliente.documento,
+                "brinquedos": brinquedo_nomes,
+                "endereco": festa.endereco,
+                "numero": festa.numero,
+                "complemento": festa.complemento or "",
+                "data_evento": festa.data_festa.strftime("%d/%m/%Y"),
+
+                # Valores formatados
+                "valor_brinquedos": f"{valor_brinquedos:.2f}",
+                "acrescimos": f"{acrescimos:.2f}",
+                "descontos": f"{descontos:.2f}",
+                "total": f"{total:.2f}",
+
+                # Parcelas
+                "valor_30": f"{total * Decimal('0.3'):.2f}",
+                "valor_70": f"{total * Decimal('0.7'):.2f}",
+                "data_hoje": date.today().strftime("%d/%m/%Y"),
+            }
+
+            html = render_to_string("contrato.html", context)
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Contrato-{festa.cliente.nome}.pdf"'
+
+            pisa_status = pisa.CreatePDF(html, dest=response)
+
+            if pisa_status.err:
+                return HttpResponse("Erro ao gerar PDF", status=500)
+            return response
+
+        except Locacao.DoesNotExist:
+            return Response({"erro": "Festa não encontrada"}, status=status.HTTP_404_NOT_FOUND)
