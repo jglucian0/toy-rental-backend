@@ -8,7 +8,8 @@ from .views import (
     LocacoesListCreateAPIView,
     LocacoesDetailAPIView,
     BrinquedosDisponiveisAPIView,
-    ContratoFestaPDFView
+    ContratoLocacaoPDFView,
+    ContratoAnexoAPIView
 )
 
 urlpatterns = [
@@ -42,6 +43,11 @@ urlpatterns = [
     path('locacoes/<int:id>/', LocacoesDetailAPIView.as_view(),
          name='locacoes-detail'),
     
-    # Gera o PDF do contrato de locação de festa
-    path("locacoes/<int:festa_id>/contrato", ContratoFestaPDFView.as_view(), name="contrato_festa_pdf"),
+    # Gera o PDF do contrato de locação
+    path("locacoes/<int:locacao_id>/contrato/",
+         ContratoLocacaoPDFView.as_view(), name="contrato_locacao_pdf"),
+
+    # URL para upload de anexos do contrato
+    path('locacoes/<int:locacao_id>/anexos/',
+         ContratoAnexoAPIView.as_view(), name="anexo_locacao_pdf"),
 ]
