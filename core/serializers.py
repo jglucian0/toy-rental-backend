@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Cliente, Brinquedo, Locacao
+from .models import Cliente, Brinquedo, Locacao, ContratoAnexo
 
 
 # Serializa todos os campos do Cliente + exibe status legível (ex: 'ativo' → 'Ativo')
@@ -44,3 +44,10 @@ class LocacaoSerializer(serializers.ModelSerializer):
 
     def get_status_display(self, obj):
         return obj.get_status_display()
+
+
+# Serializa os anexos do contrato de locação
+class ContratoAnexoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContratoAnexo
+        fields = ['id', 'arquivo', 'data_upload']
