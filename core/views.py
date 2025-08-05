@@ -161,7 +161,7 @@ class BrinquedosDisponiveisAPIView(APIView):
 # Lista todas as locações ou cria uma nova
 class LocacoesListCreateAPIView(APIView):
     def get(self, request):
-        locacoes = Locacao.objects.all()
+        locacoes = Locacao.objects.all().order_by('data_festa')
         serializer = LocacaoSerializer(locacoes, many=True)
         return Response(serializer.data)
 
@@ -263,7 +263,7 @@ class ContratoLocacaoPDFView(APIView):
             return Response({"erro": "Festa não encontrada"}, status=status.HTTP_404_NOT_FOUND)
 
 
-#
+# Anexo do contrato de locação
 class ContratoAnexoAPIView(APIView):
     permission_classes = [AllowAny]
     parser_classes = [MultiPartParser]

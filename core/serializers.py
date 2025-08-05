@@ -50,7 +50,6 @@ class LocacaoSerializer(serializers.ModelSerializer):
 class ContratoAnexoSerializer(serializers.ModelSerializer):
     tem_anexo = serializers.SerializerMethodField()
     
-    
     class Meta:
         model = ContratoAnexo
         fields = ['id', 'arquivo', 'tem_anexo']
