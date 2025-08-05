@@ -48,6 +48,21 @@ class LocacaoSerializer(serializers.ModelSerializer):
 
 # Serializa o anexo do contrato de locação
 class ContratoAnexoSerializer(serializers.ModelSerializer):
+    tem_anexo = serializers.SerializerMethodField()
+    
+    
     class Meta:
         model = ContratoAnexo
-        fields = ['id', 'arquivo', 'data_upload']
+        fields = ['id', 'arquivo', 'tem_anexo']
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        request = self.context.get('request')
+        if instance.arquivo and hasattr(instance.arquivo, 'url'):
+            rep['arquivo'] = request.build_absolute_uri(instance.arquivo.url)
+        else:
+            rep['arquivo'] = None
+        return rep
+    
+    def get_tem_anexo(self, obj):
+        return bool(obj.arquivo)

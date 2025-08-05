@@ -271,7 +271,8 @@ class ContratoAnexoAPIView(APIView):
     def get(self, request, locacao_id):
         try:
             anexo = ContratoAnexo.objects.get(locacao_id=locacao_id)
-            serializer = ContratoAnexoSerializer(anexo)
+            serializer = ContratoAnexoSerializer(
+                anexo, context={"request": request})
             return Response(serializer.data)
         except ContratoAnexo.DoesNotExist:
             return Response({"erro": "Anexo não encontrado"}, status=status.HTTP_404_NOT_FOUND)
@@ -280,7 +281,10 @@ class ContratoAnexoAPIView(APIView):
         try:
             anexo, created = ContratoAnexo.objects.get_or_create(
                 locacao_id=locacao_id)
-            anexo.arquivo = request.FILES["arquivo"]
+            arquivo = request.FILES.get("arquivo")
+            if not arquivo:
+                return Response({"erro": "Arquivo não enviado."}, status=400)
+            anexo.arquivo = arquivo
             anexo.save()
             return Response({"mensagem": "Anexo salvo com sucesso"}, status=status.HTTP_201_CREATED)
         except Exception as e:
