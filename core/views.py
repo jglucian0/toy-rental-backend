@@ -13,6 +13,8 @@ from datetime import datetime, date
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
+
+
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.all()
@@ -209,8 +211,9 @@ class LocacoesDetailAPIView(APIView):
 # Atualiza o status da locação ID
 class LocacoesStatusUpdateAPIView(APIView):
     def patch(self, request, id):
-        festa = Locacao.get_object(id=id)
-        if not festa:
+        try:
+            festa = Locacao.objects.get(id=id)
+        except Locacao.DoesNotExist:
             return Response({'erro': 'Locação não encontrada'}, status=404)
 
         novo_status = request.data.get('status')
