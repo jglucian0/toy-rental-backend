@@ -7,9 +7,10 @@ from .views import (
     BrinquedoDetailAPIView,
     LocacoesListCreateAPIView,
     LocacoesDetailAPIView,
+    LocacoesStatusUpdateAPIView,
     BrinquedosDisponiveisAPIView,
     ContratoLocacaoPDFView,
-    ContratoAnexoAPIView
+    ContratoAnexoAPIView,
 )
 
 urlpatterns = [
@@ -42,6 +43,10 @@ urlpatterns = [
     # Detalhes, edição ou exclusão de uma locação específica
     path('locacoes/<int:id>/', LocacoesDetailAPIView.as_view(),
          name='locacoes-detail'),
+    
+    # Atualiza o status de uma locação específica
+    path('locacoes/<int:id>/status/',
+         LocacoesStatusUpdateAPIView.as_view(), name='locacoes-update-status'),
     
     # Gera o PDF do contrato de locação
     path("locacoes/<int:locacao_id>/contrato/",
