@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils.timezone import make_aware
+from datetime import datetime
 
 
 class Cliente(models.Model):
@@ -138,6 +140,7 @@ class Locacao(models.Model):
         except Exception:
             return f'{self.cliente.nome} - {self.data_festa} a {self.data_desmontagem} - (sem brinquedos) ({self.get_status_display()})'
 
+
 class ContratoAnexo(models.Model):
     locacao = models.ForeignKey(Locacao, on_delete=models.CASCADE)
     arquivo = models.FileField(upload_to='contratos_anexos/')
@@ -145,3 +148,16 @@ class ContratoAnexo(models.Model):
 
     def __str__(self):
         return f'Anexo: {self.arquivo.name} - {self.locacao}'
+
+
+class AtualizarStatusRecolher(models.Model):
+    agora = make_aware(datetime.now())
+    festas = Locacao.objects.filter(status="montado")
+
+    for festa in festas:
+        data_hora_desmontagem = make_aware(datetime.combine(
+            festa.data_desmontagem, festa.hora_desmontagem))
+
+        if data_hora_desmontagem <= agora:
+            festa.status = "recolher"
+            festa.save()

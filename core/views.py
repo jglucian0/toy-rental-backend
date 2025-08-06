@@ -217,7 +217,7 @@ class LocacoesStatusUpdateAPIView(APIView):
             return Response({'erro': 'Locação não encontrada'}, status=404)
 
         novo_status = request.data.get('status')
-        if novo_status not in ['pendente', 'confirmada', 'montado', 'recolher', 'finalizada']:
+        if novo_status not in ['pendente', 'confirmado', 'montado', 'recolher', 'finalizado']:
             return Response({'erro': 'Status inválido'}, status=400)
 
         festa.status = novo_status
