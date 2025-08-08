@@ -35,12 +35,22 @@ class LocacaoSerializer(serializers.ModelSerializer):
     brinquedos_ids = serializers.PrimaryKeyRelatedField(
         queryset=Brinquedo.objects.all(), many=True, source='brinquedos', write_only=True
     )
-    
+
     brinquedos = BrinquedoSerializer(many=True, read_only=True)
-    
+
+    valor_total_calculado = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
+
     class Meta:
         model = Locacao
         fields = '__all__'
+        extra_fields = ['valor_total_calculado']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['valor_total_calculado'] = instance.valor_total_calculado
+        return data
 
     def get_status_display(self, obj):
         return obj.get_status_display()
@@ -49,7 +59,7 @@ class LocacaoSerializer(serializers.ModelSerializer):
 # Serializa o anexo do contrato de locação
 class ContratoAnexoSerializer(serializers.ModelSerializer):
     tem_anexo = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = ContratoAnexo
         fields = ['id', 'arquivo', 'tem_anexo']
@@ -62,6 +72,6 @@ class ContratoAnexoSerializer(serializers.ModelSerializer):
         else:
             rep['arquivo'] = None
         return rep
-    
+
     def get_tem_anexo(self, obj):
         return bool(obj.arquivo)

@@ -10,6 +10,8 @@ from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializ
 from xhtml2pdf import pisa
 from decimal import Decimal
 from datetime import datetime, date
+from django.utils.text import slugify
+
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
@@ -166,6 +168,9 @@ class LocacoesListCreateAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        if request.data.get("data_festa") > request.data.get("data_desmontagem"):
+         return Response({"erro": "A data da festa não pode ser posterior à data de desmontagem."}, status=400)
+        
         locacoes = LocacaoSerializer(data=request.data)
         if locacoes.is_valid():
             locacoes.save()
@@ -290,7 +295,7 @@ class ContratoLocacaoPDFView(APIView):
 
             html = render_to_string("contrato.html", context)
             response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="Contrato-{locacao.cliente.nome}.pdf"'
+            response['Content-Disposition'] = f'attachment; filename="Contrato-{slugify(locacao.cliente.nome)}.pdf"'
 
             pisa_status = pisa.CreatePDF(html, dest=response)
 
