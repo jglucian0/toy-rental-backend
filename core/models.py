@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import make_aware
 from datetime import datetime
+from decimal import Decimal
 
 
 class Cliente(models.Model):
@@ -119,11 +120,18 @@ class Locacao(models.Model):
     data_desmontagem = models.DateField()
     hora_desmontagem = models.TimeField()
     montador = models.CharField(max_length=100)
-    valor_entrada = models.DecimalField(max_digits=8, decimal_places=2)
-    valor_total = models.DecimalField(max_digits=8, decimal_places=2)
-    acrescimos = models.DecimalField(max_digits=8, decimal_places=2)
-    descontos = models.DecimalField(max_digits=8, decimal_places=2)
-    pagamento = models.CharField(max_length=20, choices=PAGAMENTO_CHOICES, default='nao_pago')
+    valor_entrada = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    valor_total = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    valor_restante = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    acrescimos = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    descontos = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    pagamento = models.CharField(
+        max_length=20, choices=PAGAMENTO_CHOICES, default='nao_pago')
     qtd_parcelas = models.IntegerField(default='1')
     status = models.CharField(choices=STATUS_CHOICES, default='pendente')
     metodo_pagamento = models.CharField(
@@ -139,6 +147,21 @@ class Locacao(models.Model):
     uf = models.CharField(max_length=2)  # Obrigatório
     complemento = models.CharField(
         max_length=100, null=True, blank=True)  # Opcional
+
+    @property
+    def valor_total_calculado(self):
+        total_brinquedos = sum(b.valor_diaria for b in self.brinquedos.all())
+        return total_brinquedos + (self.acrescimos or Decimal('0.00')) - (self.descontos or Decimal('0.00'))
+
+    @property
+    def valor_saldo(self):
+        # Se o pagamento for 'entrada' considera valor_entrada pago, se for 'pago' o total
+        if self.pagamento == 'entrada':
+            return self.valor_total - self.valor_entrada
+        elif self.pagamento == 'pago':
+            return Decimal('0.00')
+        else:
+            return self.valor_total
 
     def __str__(self):
         try:
