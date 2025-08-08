@@ -200,6 +200,28 @@ class LocacoesDetailAPIView(APIView):
             return Response(serializer.data)
         return Response({'erro': 'Dados inválidos'}, status=400)
 
+    def patch(self, request, id):
+        festa = self.get_object(id)
+        if not festa:
+            return Response({'erro': 'Locação não encontrada'}, status=404)
+
+        novo_pagamento = request.data.get("pagamento")
+        status_atual = festa.status
+
+        # Regras de atualização de status com base no pagamento
+        if novo_pagamento == "nao_pago":
+            festa.status = "pendente"
+        elif novo_pagamento in ["entrada", "pago"]:
+            if status_atual == "pendente":
+                festa.status = "confirmado"
+            # Se o status já for montado, recolher ou finalizado, ele não muda
+
+        serializer = LocacaoSerializer(festa, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
     def delete(self, request, id):
         festa = self.get_object(id=id)
         if not festa:

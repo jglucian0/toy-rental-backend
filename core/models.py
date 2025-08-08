@@ -89,6 +89,12 @@ class Locacao(models.Model):
         ('10h', '10 horas'),
     ]
 
+    PAGAMENTO_CHOICES = [
+        ('nao_pago', 'Não Pago'),
+        ('entrada', '30% Pago'),
+        ('pago', 'Pago'),
+    ]
+
     STATUS_CHOICES = [
         ('pendente', 'Pendente'),  # Agendado, mas ainda sem sinal (30%)
         ('confirmado', 'Confirmado'),  # Pagamento parcial feito
@@ -117,6 +123,7 @@ class Locacao(models.Model):
     valor_total = models.DecimalField(max_digits=8, decimal_places=2)
     acrescimos = models.DecimalField(max_digits=8, decimal_places=2)
     descontos = models.DecimalField(max_digits=8, decimal_places=2)
+    pagamento = models.CharField(max_length=20, choices=PAGAMENTO_CHOICES, default='nao_pago')
     qtd_parcelas = models.IntegerField(default='1')
     status = models.CharField(choices=STATUS_CHOICES, default='pendente')
     metodo_pagamento = models.CharField(
@@ -148,16 +155,3 @@ class ContratoAnexo(models.Model):
 
     def __str__(self):
         return f'Anexo: {self.arquivo.name} - {self.locacao}'
-
-
-class AtualizarStatusRecolher(models.Model):
-    agora = make_aware(datetime.now())
-    festas = Locacao.objects.filter(status="montado")
-
-    for festa in festas:
-        data_hora_desmontagem = make_aware(datetime.combine(
-            festa.data_desmontagem, festa.hora_desmontagem))
-
-        if data_hora_desmontagem <= agora:
-            festa.status = "recolher"
-            festa.save()
