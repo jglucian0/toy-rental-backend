@@ -25,6 +25,7 @@ env/
 # Pasta static (se for gerada automaticamente)
 static/
 staticfiles/
+media/
 
 # Arquivos do sistema (Windows)
 Thumbs.db

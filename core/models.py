@@ -178,3 +178,49 @@ class ContratoAnexo(models.Model):
 
     def __str__(self):
         return f'Anexo: {self.arquivo.name} - {self.locacao}'
+
+
+class Transacoes(models.Model):
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('pago', 'Pago'),
+        ('planejado', 'Planejado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    TIPO_CHOICES = [
+        ('entrada', 'Entrada')
+        ('saida', 'Saida')
+    ]
+    
+    CATEGORIA_CHOICES = [
+        ('aluguel', 'Aluguel'),
+        ('manutencao', 'Manutenção'),
+        ('salario', 'Salário'),
+        ('compra', 'Compra'),
+        ('pagamento', 'Pagamento'),
+        ('gasolina', 'Gasolina'),
+        ('outro', 'Outro'),
+    ]
+    
+    ORIGEM_CHOICES = [
+        ('manual', 'Manual'),
+        ('locacao', 'Locação'),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    data_transacao = models.DateField()
+    tipo = models.CharField(max_length=8, choices=TIPO_CHOICES)
+    valor = models.DecimalField(max_digits=8, decimal_places=2)
+    categoria = models.CharField(max_length=10, choices=CATEGORIA_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    descricao = models.TextField(null=True, blank=True)
+    origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES)
+    referencia_id = models.IntegerField(null=True, blank=True)
+    parcelamento_total = models.IntegerField(null=True, blank=True)
+    parcelamento_num = models.IntegerField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__ (self):
+        return f'{self.id} - {self.data_transacao} - {self.tipo} - {self.valor} - {self.categoria} - {self.status}'
