@@ -1,12 +1,13 @@
 from django.template.loader import render_to_string
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser
-from .models import Cliente, Brinquedo, Locacao, ContratoAnexo
-from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer, ContratoAnexoSerializer
+from .models import Cliente, Brinquedo, Locacao, ContratoAnexo, Transacoes
+from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer, ContratoAnexoSerializer, TransacoesSerializer
 from xhtml2pdf import pisa
 from decimal import Decimal
 from datetime import datetime, date
@@ -15,8 +16,6 @@ from django.utils.text import slugify
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
-
-
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
         clientes = Cliente.objects.all()
@@ -41,36 +40,23 @@ class ClientesAtivosAPIView(APIView):
 
 # Detalhe, edição e exclusão de cliente específico
 class ClienteDetailAPIView(APIView):
-    # Função interna pra buscar cliente ou retornar None
-    def get_object(self, id):
-        try:
-            return Cliente.objects.get(id=id)
-        except Cliente.DoesNotExist:
-            return None
-
     def get(self, request, id):
-        cliente = self.get_object(id)
-        if not cliente:
-            return Response({'erro': 'Cliente não encontrado'}, status=404)
+        cliente = get_object_or_404(Cliente, id=id)
         serializer = ClienteSerializer(cliente)
         return Response(serializer.data)
 
     def put(self, request, id):
-        cliente = self.get_object(id)
-        if not cliente:
-            return Response({'erro': 'Cliente não encontrado'}, status=404)
+        cliente = get_object_or_404(Cliente, id=id)
         serializer = ClienteSerializer(cliente, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id):
-        cliente = self.get_object(id)
-        if not cliente:
-            return Response({'erro': 'Cliente não encontrado'}, status=404)
+        cliente = get_object_or_404(Cliente, id=id)
         cliente.delete()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # Brinquedos
@@ -91,36 +77,24 @@ class BrinquedoListCreateAPIView(APIView):
 
 # Detalhe, edição e exclusão de brinquedo específico
 class BrinquedoDetailAPIView(APIView):
-    # Busca o brinquedo ou retorna None
-    def get_object(self, id):
-        try:
-            return Brinquedo.objects.get(id=id)
-        except Brinquedo.DoesNotExist:
-            return None
-
     def get(self, request, id):
-        brinquedo = self.get_object(id)
-        if not brinquedo:
-            return Response({'erro': 'Brinquedo não encontrado'}, status=404)
+        brinquedo = get_object_or_404(Brinquedo, id=id)
         serializer = BrinquedoSerializer(brinquedo)
         return Response(serializer.data)
 
     def put(self, request, id):
-        brinquedo = self.get_object(id)
-        if not brinquedo:
-            return Response({'erro': 'Brinquedo não encontrado'}, status=404)
+        brinquedo = get_object_or_404(Brinquedo, id=id)
         serializer = BrinquedoSerializer(brinquedo, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response({'erro': 'Dados inválidos'}, status=400)
+        return Response({"erro": "Dados inválidos"}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id):
-        brinquedo = self.get_object(id)
-        if not brinquedo:
-            return Response({'erro': 'Brinquedo não encontrado'}, status=404)
+        brinquedo = get_object_or_404(Brinquedo, id=id)
         brinquedo.delete()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 # Lista todos os brinquedos disponíveis baseado na data
@@ -169,8 +143,8 @@ class LocacoesListCreateAPIView(APIView):
 
     def post(self, request):
         if request.data.get("data_festa") > request.data.get("data_desmontagem"):
-         return Response({"erro": "A data da festa não pode ser posterior à data de desmontagem."}, status=400)
-        
+            return Response({"erro": "A data da festa não pode ser posterior à data de desmontagem."}, status=400)
+
         locacoes = LocacaoSerializer(data=request.data)
         if locacoes.is_valid():
             locacoes.save()
@@ -182,56 +156,56 @@ class LocacoesListCreateAPIView(APIView):
 class LocacoesDetailAPIView(APIView):
     # Busca a locação ou retorna None
     def get_object(self, id):
-        festas = Locacao.objects.get(id=id)
         try:
-            return festas
+            return Locacao.objects.get(id=id)
         except Locacao.DoesNotExist:
             return None
 
     def get(self, request, id):
-        festa = self.get_object(id)
-        if not festa:
+        locacao = self.get_object(id)
+        if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
-        serializer = LocacaoSerializer(festa)
+        serializer = LocacaoSerializer(locacao)
         return Response(serializer.data)
 
     def put(self, request, id):
-        festa = self.get_object(id)
-        if not festa:
+        locacao = self.get_object(id)
+        if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
-        serializer = LocacaoSerializer(festa, data=request.data)
+        serializer = LocacaoSerializer(locacao, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response({'erro': 'Dados inválidos'}, status=400)
 
     def patch(self, request, id):
-        festa = self.get_object(id)
-        if not festa:
+        locacao = self.get_object(id)
+        if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
 
         novo_pagamento = request.data.get("pagamento")
-        status_atual = festa.status
+        status_atual = locacao.status
 
         # Regras de atualização de status com base no pagamento
         if novo_pagamento == "nao_pago":
-            festa.status = "pendente"
+            locacao.status = "pendente"
         elif novo_pagamento in ["entrada", "pago"]:
             if status_atual == "pendente":
-                festa.status = "confirmado"
+                locacao.status = "confirmado"
             # Se o status já for montado, recolher ou finalizado, ele não muda
 
-        serializer = LocacaoSerializer(festa, data=request.data, partial=True)
+        serializer = LocacaoSerializer(
+            locacao, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
     def delete(self, request, id):
-        festa = self.get_object(id=id)
-        if not festa:
+        locacao = self.get_object(id=id)
+        if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
-        festa.delete()
+        locacao.delete()
         return Response(status=204)
 
 
@@ -239,7 +213,7 @@ class LocacoesDetailAPIView(APIView):
 class LocacoesStatusUpdateAPIView(APIView):
     def patch(self, request, id):
         try:
-            festa = Locacao.objects.get(id=id)
+            locacao = Locacao.objects.get(id=id)
         except Locacao.DoesNotExist:
             return Response({'erro': 'Locação não encontrada'}, status=404)
 
@@ -247,8 +221,8 @@ class LocacoesStatusUpdateAPIView(APIView):
         if novo_status not in ['pendente', 'confirmado', 'montado', 'recolher', 'finalizado']:
             return Response({'erro': 'Status inválido'}, status=400)
 
-        festa.status = novo_status
-        festa.save()
+        locacao.status = novo_status
+        locacao.save()
         return Response({"mensagem": "Status atualizado com sucesso"}, status=200)
 
 
@@ -342,3 +316,38 @@ class ContratoAnexoAPIView(APIView):
             return Response({"mensagem": "Anexo excluído com sucesso"}, status=status.HTTP_204_NO_CONTENT)
         except ContratoAnexo.DoesNotExist:
             return Response({"erro": "Anexo não encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# Transações
+class TransacoesListCreateAPIView(APIView):
+    def get(self, request):
+        transacoes = Transacoes.objects.all().order_by('-data_tansacao')
+        serializer = TransacoesSerializer(transacoes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = TransacoesSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class TransacoesDetailAPIView(APIView):
+    def get(self, request, id):
+        transacao = get_object_or_404(Transacoes, id=id)
+        serializer = TransacoesSerializer(transacao)
+        return Response(serializer.data)
+    
+    def put(self, request, id):
+        transacao = get_object_or_404(Transacoes, id=id)
+        serializer = TransacoesSerializer(transacao, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, id):
+        transacao = get_object_or_404(Transacoes, id=id)
+        transacao.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+

@@ -212,7 +212,7 @@ class Transacoes(models.Model):
     data_transacao = models.DateField()
     tipo = models.CharField(max_length=8, choices=TIPO_CHOICES)
     valor = models.DecimalField(max_digits=8, decimal_places=2)
-    categoria = models.CharField(max_length=10, choices=CATEGORIA_CHOICES)
+    categoria = models.CharField(max_length=12, choices=CATEGORIA_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     descricao = models.TextField(null=True, blank=True)
     origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES)
