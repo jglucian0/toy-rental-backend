@@ -11,6 +11,8 @@ from .views import (
     BrinquedosDisponiveisAPIView,
     ContratoLocacaoPDFView,
     ContratoAnexoAPIView,
+    TransacoesListCreateAPIView,
+    TransacoesDetailAPIView,
 )
 
 urlpatterns = [
@@ -31,28 +33,36 @@ urlpatterns = [
     # Detalhes, edição ou exclusão de um brinquedo específico
     path('brinquedos/<int:id>/', BrinquedoDetailAPIView.as_view(),
          name='brinquedo-detail'),
-    
+
     # Lista todos os brinquedos disponíveis baseado na data
     path('brinquedos/disponiveis/', BrinquedosDisponiveisAPIView.as_view(),
          name='brinquedos-disponiveis'),
-    
+
     # Lista todas as locações ou cria uma nova
     path('locacoes/', LocacoesListCreateAPIView.as_view(),
          name='locacoes-list-create'),
-    
+
     # Detalhes, edição ou exclusão de uma locação específica
     path('locacoes/<int:id>/', LocacoesDetailAPIView.as_view(),
          name='locacoes-detail'),
-    
+
     # Atualiza o status de uma locação específica
     path('locacoes/<int:id>/status/',
          LocacoesStatusUpdateAPIView.as_view(), name='locacoes-update-status'),
-    
+
     # Gera o PDF do contrato de locação
     path("locacoes/<int:locacao_id>/contrato/",
-         ContratoLocacaoPDFView.as_view(), name="contrato_locacao_pdf"),
+         ContratoLocacaoPDFView.as_view(), name="contrato-locacao-pdf"),
 
     # URL para upload de anexos do contrato
     path('locacoes/<int:locacao_id>/anexos/',
-         ContratoAnexoAPIView.as_view(), name="anexo_locacao_pdf"),
+         ContratoAnexoAPIView.as_view(), name="anexo-locacao-pdf"),
+
+    # Lista todas as transações ou cria uma nova
+    path('transacoes/', TransacoesListCreateAPIView.as_view(),
+         name='transacoes-list-create'),
+
+    # Detalhes, edição ou exclusão de uma transação específica
+    path('transacoes/<int:transacao_id>/', TransacoesDetailAPIView.as_view(),
+         name='transacoes-detail'),
 ]
