@@ -321,7 +321,7 @@ class ContratoAnexoAPIView(APIView):
 # Transações
 class TransacoesListCreateAPIView(APIView):
     def get(self, request):
-        transacoes = Transacoes.objects.all().order_by('-data_tansacao')
+        transacoes = Transacoes.objects.all().order_by('-data_transacao')
         serializer = TransacoesSerializer(transacoes, many=True)
         return Response(serializer.data)
 

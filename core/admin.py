@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cliente, Brinquedo, Locacao
+from .models import Cliente, Brinquedo, Locacao, Transacoes
 
 
 @admin.register(Cliente)
@@ -21,5 +21,13 @@ class BrinquedoAdmin(admin.ModelAdmin):
 class LocacaoAdmin(admin.ModelAdmin):
     list_display = ['cliente','data_festa', 'data_desmontagem']
     list_filter = ['data_festa', 'data_desmontagem']
+    search_fields = ['cliente__nome']
+    list_per_page = 20
+    
+    
+@admin.register(Transacoes)
+class TransacoesAdmin(admin.ModelAdmin):
+    list_display = ['data_transacao', 'tipo', 'valor', 'categoria']
+    list_filter = ['data_transacao', 'tipo', 'categoria']
     search_fields = ['cliente__nome']
     list_per_page = 20
