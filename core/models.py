@@ -189,8 +189,8 @@ class Transacoes(models.Model):
     ]
     
     TIPO_CHOICES = [
-        ('entrada', 'Entrada')
-        ('saida', 'Saida')
+        ('entrada', 'Entrada'),
+        ('saida', 'Saida'),
     ]
     
     CATEGORIA_CHOICES = [
