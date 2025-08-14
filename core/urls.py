@@ -63,6 +63,6 @@ urlpatterns = [
          name='transacoes-list-create'),
 
     # Detalhes, edição ou exclusão de uma transação específica
-    path('transacoes/<int:transacao_id>/', TransacoesDetailAPIView.as_view(),
+    path('transacoes/<int:id>/', TransacoesDetailAPIView.as_view(),
          name='transacoes-detail'),
 ]

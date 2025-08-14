@@ -79,6 +79,17 @@ class ContratoAnexoSerializer(serializers.ModelSerializer):
 
 # Serializa as transações
 class TransacoesSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(
+        source='get_status_display', read_only=True)
+    tipo_display = serializers.CharField(
+        source='get_tipo_display', read_only=True)
+    categoria_display = serializers.CharField(
+        source='get_categoria_display', read_only=True)
+    origem_display = serializers.CharField(
+        source='get_origem_display', read_only=True)
+
     class Meta:
         model = Transacoes
         fields = '__all__'
+        extra_fields = ['status_display', 'tipo_display',
+                        'categoria_display', 'origem_display']

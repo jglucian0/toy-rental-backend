@@ -199,7 +199,7 @@ class Transacoes(models.Model):
         ('salario', 'Salário'),
         ('compra', 'Compra'),
         ('pagamento', 'Pagamento'),
-        ('gasolina', 'Gasolina'),
+        ('combustivel', 'Combustível'),
         ('outro', 'Outro'),
     ]
     
