@@ -41,19 +41,81 @@ class LocacaoSerializer(serializers.ModelSerializer):
     valor_total_calculado = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True
     )
+    status_display = serializers.CharField(
+        source='get_status_display', read_only=True
+    )
 
     class Meta:
         model = Locacao
         fields = '__all__'
-        extra_fields = ['valor_total_calculado']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['valor_total_calculado'] = instance.valor_total_calculado
         return data
 
-    def get_status_display(self, obj):
-        return obj.get_status_display()
+    def create(self, validated_data):
+        # Remove brinquedos_ids do validated_data para criar Locacao
+        brinquedos = validated_data.pop('brinquedos', [])
+        locacao = super().create(validated_data)
+        locacao.brinquedos.set(brinquedos)
+
+        # Cria a transação automática
+        Transacoes.objects.create(
+            data_transacao=locacao.data_festa,  # ou data_inicio/data_transacao que você usar
+            tipo='entrada',
+            valor=locacao.valor_total,
+            categoria='aluguel',
+            status='pago',
+            descricao=f'Transação automática da locação {locacao.id}',
+            origem='locacao',
+            referencia_id=locacao.id,
+            parcelamento_total=1,
+            parcelamento_num=1,
+        )
+        return locacao
+
+    def update(self, instance, validated_data):
+        brinquedos = validated_data.pop('brinquedos', None)
+        locacao = super().update(instance, validated_data)
+        if brinquedos is not None:
+            locacao.brinquedos.set(brinquedos)
+
+        # Atualiza ou cria transação automática
+        transacao, created = Transacoes.objects.get_or_create(
+            referencia_id=locacao.id,
+            origem='locacao',
+            defaults={
+                "data_transacao": locacao.data_festa,
+                "tipo": "entrada",
+                "valor": locacao.valor_total,
+                "categoria": "aluguel",
+                "status": "pago",
+                "descricao": f"Transação automática da locação {locacao.id}",
+                "parcelamento_total": 1,
+                "parcelamento_num": 1,
+            }
+        )
+
+        if not created:  # já existia, então atualiza
+            transacao.data_transacao = locacao.data_festa
+            transacao.valor = locacao.valor_total
+            transacao.status = "pago"
+            transacao.descricao = f"Transação automática da locação {locacao.id}"
+            transacao.save()
+
+        return locacao
+
+    def cancelar_transacao_automaticamente(self, instance):
+        transacao = Transacoes.objects.filter(
+            referencia_id=instance.id,
+            origem='locacao'
+        ).first()
+        if transacao:
+            transacao.status = 'cancelado'
+            transacao.descricao += " (Cancelada junto com a locação)"
+            transacao.save()
+        return transacao
 
 
 # Serializa o anexo do contrato de locação

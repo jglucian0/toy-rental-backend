@@ -96,7 +96,6 @@ class BrinquedoDetailAPIView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
 # Lista todos os brinquedos disponíveis baseado na data
 class BrinquedosDisponiveisAPIView(APIView):
     def get(self, request):
@@ -183,19 +182,23 @@ class LocacoesDetailAPIView(APIView):
         if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
 
-        novo_pagamento = request.data.get("pagamento")
+        # Pega dados recebidos
+        data = request.data.copy()
+
+        novo_pagamento = data.get("pagamento")
         status_atual = locacao.status
 
         # Regras de atualização de status com base no pagamento
         if novo_pagamento == "nao_pago":
-            locacao.status = "pendente"
+            data["status"] = "pendente"
         elif novo_pagamento in ["entrada", "pago"]:
             if status_atual == "pendente":
-                locacao.status = "confirmado"
-            # Se o status já for montado, recolher ou finalizado, ele não muda
+                data["status"] = "confirmado"
+            else:
+                data["status"] = status_atual  # mantém o mesmo
 
-        serializer = LocacaoSerializer(
-            locacao, data=request.data, partial=True)
+        # Usa partial=True para não exigir todos os campos obrigatórios
+        serializer = LocacaoSerializer(locacao, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -205,11 +208,27 @@ class LocacoesDetailAPIView(APIView):
         locacao = self.get_object(id=id)
         if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
+
+        # Aqui é o lugar certo para cancelar a transação automática
+        transacao = Transacoes.objects.filter(
+            referencia_id=locacao.id,
+            origem='locacao'
+        ).first()
+        if transacao:
+            # Opção 1: marcar como cancelado
+            transacao.status = 'cancelado'
+            transacao.save()
+
+            # Opção 2 (menos recomendada): deletar a transação
+            # transacao.delete()
+
+        # Deleta a locação
         locacao.delete()
         return Response(status=204)
 
-
 # Atualiza o status da locação ID
+
+
 class LocacoesStatusUpdateAPIView(APIView):
     def patch(self, request, id):
         try:
@@ -332,12 +351,13 @@ class TransacoesListCreateAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class TransacoesDetailAPIView(APIView):
     def get(self, request, id):
         transacao = get_object_or_404(Transacoes, id=id)
         serializer = TransacoesSerializer(transacao)
         return Response(serializer.data)
-    
+
     def put(self, request, id):
         transacao = get_object_or_404(Transacoes, id=id)
         serializer = TransacoesSerializer(transacao, data=request.data)
@@ -345,9 +365,8 @@ class TransacoesDetailAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
     def delete(self, request, id):
         transacao = get_object_or_404(Transacoes, id=id)
         transacao.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
