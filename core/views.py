@@ -150,6 +150,24 @@ class LocacoesListCreateAPIView(APIView):
             return Response(locacoes.data, status=status.HTTP_201_CREATED)
         return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def perform_destroy(self, instance):
+        # Cancela ou exclui a transação associada antes de excluir a locação
+        transacao = Transacoes.objects.filter(
+            locacao=instance,
+            origem="locacao"
+        ).first()
+        if transacao:
+            # opção 1: cancelar a transação
+            transacao.status = "cancelado"
+            transacao.descricao += " (Cancelada junto com a locação)"
+            transacao.save()
+
+            # opção 2 (se preferir excluir a transação):
+            # transacao.delete()
+
+        # agora remove a locação
+        instance.delete()
+
 
 # Detalhe, edição e exclusão de locação específico
 class LocacoesDetailAPIView(APIView):
@@ -211,12 +229,13 @@ class LocacoesDetailAPIView(APIView):
 
         # Aqui é o lugar certo para cancelar a transação automática
         transacao = Transacoes.objects.filter(
-            referencia_id=locacao.id,
+            locacao=locacao,
             origem='locacao'
         ).first()
         if transacao:
             # Opção 1: marcar como cancelado
             transacao.status = 'cancelado'
+            transacao.descricao += " (Cancelada junto com a locação)"
             transacao.save()
 
             # Opção 2 (menos recomendada): deletar a transação

@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.timezone import make_aware
 from datetime import datetime
 from decimal import Decimal
+from django.db.models import Sum
 
 
 class Cliente(models.Model):
@@ -187,40 +188,75 @@ class Transacoes(models.Model):
         ('planejado', 'Planejado'),
         ('cancelado', 'Cancelado'),
     ]
-    
+
     TIPO_CHOICES = [
         ('entrada', 'Entrada'),
         ('saida', 'Saida'),
     ]
-    
+
     CATEGORIA_CHOICES = [
         ('aluguel', 'Aluguel'),
         ('manutencao', 'Manutenção'),
         ('salario', 'Salário'),
         ('compra', 'Compra'),
+        ('investimento', 'Investimento'),
         ('pagamento', 'Pagamento'),
         ('combustivel', 'Combustível'),
         ('outro', 'Outro'),
     ]
-    
+
     ORIGEM_CHOICES = [
+
         ('manual', 'Manual'),
         ('locacao', 'Locação'),
     ]
-    
+
+    FORMA_PAGAMENTO_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('debito', 'Débito'),
+        ('credito', 'Crédito'),
+        ('pix', 'Pix'),
+        ('boleto', 'Boleto'),
+    ]
+
     id = models.AutoField(primary_key=True)
+    
+    locacao = models.ForeignKey(
+        'Locacao', null=True, blank=True, on_delete=models.SET_NULL)
+    cliente = models.ForeignKey(
+        'Cliente', null=True, blank=True, on_delete=models.SET_NULL)
     data_transacao = models.DateField()
+    data_vencimento = models.DateField(null=True, blank=True)
     tipo = models.CharField(max_length=8, choices=TIPO_CHOICES)
     valor = models.DecimalField(max_digits=8, decimal_places=2)
     categoria = models.CharField(max_length=12, choices=CATEGORIA_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    forma_pagamento = models.CharField(
+        max_length=20, choices=FORMA_PAGAMENTO_CHOICES, null=True, blank=True)
     descricao = models.TextField(null=True, blank=True)
     origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES)
-    referencia_id = models.IntegerField(null=True, blank=True)
     parcelamento_total = models.IntegerField(null=True, blank=True)
     parcelamento_num = models.IntegerField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    data_vencimento = models.DateField(null=True, blank=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
-    def __str__ (self):
+    class Meta:
+        verbose_name = "Transação"
+        verbose_name_plural = "Transações"
+        ordering = ['-data_transacao', '-id']
+
+    def __str__(self):
         return f'{self.id} - {self.data_transacao} - {self.tipo} - {self.valor} - {self.categoria} - {self.status}'
+
+    @classmethod
+    def saldo_ate(cls, data):
+        entradas = cls.objects.filter(data_transacao__lte=data, tipo='entrada', status='pago').aggregate(
+            Sum('valor'))['valor__sum'] or 0
+        saidas = cls.objects.filter(data_transacao__lte=data, tipo='saida', status='pago').aggregate(
+            Sum('valor'))['valor__sum'] or 0
+        return entradas - saidas
+
+    @property
+    def is_parcela(self):
+        return self.parcelamento_total and self.parcelamento_total > 1

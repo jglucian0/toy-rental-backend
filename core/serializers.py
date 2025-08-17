@@ -62,14 +62,14 @@ class LocacaoSerializer(serializers.ModelSerializer):
 
         # Cria a transação automática
         Transacoes.objects.create(
-            data_transacao=locacao.data_festa,  # ou data_inicio/data_transacao que você usar
+            data_transacao=locacao.data_festa,
             tipo='entrada',
             valor=locacao.valor_total,
             categoria='aluguel',
             status='pago',
             descricao=f'Transação automática da locação {locacao.id}',
             origem='locacao',
-            referencia_id=locacao.id,
+            locacao=locacao,
             parcelamento_total=1,
             parcelamento_num=1,
         )
@@ -83,7 +83,7 @@ class LocacaoSerializer(serializers.ModelSerializer):
 
         # Atualiza ou cria transação automática
         transacao, created = Transacoes.objects.get_or_create(
-            referencia_id=locacao.id,
+            locacao=locacao,
             origem='locacao',
             defaults={
                 "data_transacao": locacao.data_festa,
@@ -108,7 +108,7 @@ class LocacaoSerializer(serializers.ModelSerializer):
 
     def cancelar_transacao_automaticamente(self, instance):
         transacao = Transacoes.objects.filter(
-            referencia_id=instance.id,
+            locacao=instance,
             origem='locacao'
         ).first()
         if transacao:
@@ -153,5 +153,3 @@ class TransacoesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transacoes
         fields = '__all__'
-        extra_fields = ['status_display', 'tipo_display',
-                        'categoria_display', 'origem_display']
