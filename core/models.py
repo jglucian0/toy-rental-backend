@@ -183,8 +183,9 @@ class ContratoAnexo(models.Model):
 
 class Transacoes(models.Model):
     STATUS_CHOICES = [
-        ('pendente', 'Pendente'),
         ('pago', 'Pago'),
+        ('entrada', '30% Pago'),
+        ('nao_pago', 'Não Pago'),
         ('planejado', 'Planejado'),
         ('cancelado', 'Cancelado'),
     ]
@@ -230,7 +231,7 @@ class Transacoes(models.Model):
     tipo = models.CharField(max_length=8, choices=TIPO_CHOICES)
     valor = models.DecimalField(max_digits=8, decimal_places=2)
     categoria = models.CharField(max_length=12, choices=CATEGORIA_CHOICES)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    pagamento = models.CharField(max_length=10, choices=STATUS_CHOICES)
     forma_pagamento = models.CharField(
         max_length=20, choices=FORMA_PAGAMENTO_CHOICES, null=True, blank=True)
     descricao = models.TextField(null=True, blank=True)

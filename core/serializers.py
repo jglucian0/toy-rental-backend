@@ -44,6 +44,9 @@ class LocacaoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(
         source='get_status_display', read_only=True
     )
+    pagamento_display = serializers.CharField(
+        source='get_pagamento_display', read_only=True
+    )
 
     class Meta:
         model = Locacao
@@ -66,7 +69,7 @@ class LocacaoSerializer(serializers.ModelSerializer):
             tipo='entrada',
             valor=locacao.valor_total,
             categoria='aluguel',
-            status='pago',
+            pagamento=locacao.pagamento,
             descricao=f'Transação automática da locação {locacao.id}',
             origem='locacao',
             locacao=locacao,
@@ -81,38 +84,13 @@ class LocacaoSerializer(serializers.ModelSerializer):
         if brinquedos is not None:
             locacao.brinquedos.set(brinquedos)
 
-        # Atualiza ou cria transação automática
-        transacao, created = Transacoes.objects.get_or_create(
-            locacao=locacao,
-            origem='locacao',
-            defaults={
-                "data_transacao": locacao.data_festa,
-                "tipo": "entrada",
-                "valor": locacao.valor_total,
-                "categoria": "aluguel",
-                "status": "pago",
-                "descricao": f"Transação automática da locação {locacao.id}",
-                "parcelamento_total": 1,
-                "parcelamento_num": 1,
-            }
-        )
-
-        if not created:  # já existia, então atualiza
-            transacao.data_transacao = locacao.data_festa
-            transacao.valor = locacao.valor_total
-            transacao.status = "pago"
-            transacao.descricao = f"Transação automática da locação {locacao.id}"
-            transacao.save()
-
         return locacao
-
-    def cancelar_transacao_automaticamente(self, instance):
         transacao = Transacoes.objects.filter(
             locacao=instance,
             origem='locacao'
         ).first()
         if transacao:
-            transacao.status = 'cancelado'
+            transacao.pagamento = 'cancelado'
             transacao.descricao += " (Cancelada junto com a locação)"
             transacao.save()
         return transacao
@@ -141,8 +119,8 @@ class ContratoAnexoSerializer(serializers.ModelSerializer):
 
 # Serializa as transações
 class TransacoesSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(
-        source='get_status_display', read_only=True)
+    pagamento_display = serializers.CharField(
+        source='get_pagamento_display', read_only=True)
     tipo_display = serializers.CharField(
         source='get_tipo_display', read_only=True)
     categoria_display = serializers.CharField(
@@ -153,3 +131,7 @@ class TransacoesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transacoes
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        return instance
