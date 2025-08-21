@@ -74,6 +74,16 @@ class Brinquedo(models.Model):
         choices=INFLAVEL_CHOICES, null=True, blank=True)  # É inflável?
     # Texto descritivo (opcional)
     descricao = models.TextField(null=True, blank=True)
+    
+    # --- Campos de aquisição ---
+    valor_compra = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True
+    ) 
+    parcelado = models.BooleanField(default=False)
+    qtd_parcelas = models.IntegerField(
+        null=True, blank=True)
+    data_aquisicao = models.DateField(null=True, blank=True) 
+
 
     def __str__(self):
         return f'{self.nome} - {self.valor_diaria}'
