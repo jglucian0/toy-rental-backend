@@ -7,6 +7,8 @@ class CoreConfig(AppConfig):
     name = 'core'
 
     def ready(self):
+        import core.signals
+        
         def agendar_task():
             from background_task.models import Task
             from core.tasks import verificar_festas_do_dia

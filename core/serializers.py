@@ -62,20 +62,6 @@ class LocacaoSerializer(serializers.ModelSerializer):
         brinquedos = validated_data.pop('brinquedos', [])
         locacao = super().create(validated_data)
         locacao.brinquedos.set(brinquedos)
-
-        # Cria a transação automática
-        Transacoes.objects.create(
-            data_transacao=locacao.data_festa,
-            tipo='entrada',
-            valor=locacao.valor_total,
-            categoria='aluguel',
-            pagamento=locacao.pagamento,
-            descricao=f'Transação automática da locação {locacao.id}',
-            origem='locacao',
-            locacao=locacao,
-            parcelamento_total=1,
-            parcelamento_num=1,
-        )
         return locacao
 
     def update(self, instance, validated_data):

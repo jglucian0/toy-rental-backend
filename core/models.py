@@ -245,7 +245,7 @@ class Transacoes(models.Model):
     class Meta:
         verbose_name = "Transação"
         verbose_name_plural = "Transações"
-        ordering = ['-data_transacao', '-id']
+        ordering = ['-data_transacao', 'id']
 
     def __str__(self):
         return f'{self.id} - {self.data_transacao} - {self.tipo} - {self.valor} - {self.categoria} - {self.status}'
