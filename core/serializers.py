@@ -18,6 +18,14 @@ class ClienteSerializer(serializers.ModelSerializer):
 class BrinquedoSerializer(serializers.ModelSerializer):
     status_display = serializers.SerializerMethodField()
     voltagem_display = serializers.SerializerMethodField()
+    valor_diaria = serializers.DecimalField(
+        max_digits=10, decimal_places=2, allow_null=True, required=False
+    )
+    valor_compra = serializers.DecimalField(
+        max_digits=10, decimal_places=2, allow_null=True, required=False
+    )
+    qtd_total = serializers.IntegerField(allow_null=True, required=False)
+    qtd_disponivel = serializers.IntegerField(allow_null=True, required=False)
 
     class Meta:
         model = Brinquedo
@@ -113,6 +121,7 @@ class TransacoesSerializer(serializers.ModelSerializer):
         source='get_categoria_display', read_only=True)
     origem_display = serializers.CharField(
         source='get_origem_display', read_only=True)
+    brinquedo = BrinquedoSerializer(read_only=True)
 
     class Meta:
         model = Transacoes

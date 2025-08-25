@@ -34,6 +34,11 @@ class Cliente(models.Model):
 
 
 class Brinquedo(models.Model):
+    PARCELADO_CHOICES = [
+        ('sim', 'Sim'),
+        ('nao', 'Não'),
+    ]
+
     # Opções de status do brinquedo
     STATUS_CHOICES = [
         ('ativo', 'Ativo'),
@@ -59,7 +64,7 @@ class Brinquedo(models.Model):
 
     nome = models.CharField(max_length=100)  # Nome do brinquedo
     valor_diaria = models.DecimalField(
-        max_digits=8, decimal_places=2)  # Ex: 120.00
+        max_digits=10, decimal_places=2)  # Ex: 120.00
     qtd_total = models.IntegerField()  # Quantos brinquedos no total
     qtd_disponivel = models.IntegerField()  # Quantos disponíveis pra alugar
     status = models.CharField(choices=STATUS_CHOICES,
@@ -74,16 +79,17 @@ class Brinquedo(models.Model):
         choices=INFLAVEL_CHOICES, null=True, blank=True)  # É inflável?
     # Texto descritivo (opcional)
     descricao = models.TextField(null=True, blank=True)
-    
+
     # --- Campos de aquisição ---
     valor_compra = models.DecimalField(
-        max_digits=8, decimal_places=2, null=True, blank=True
-    ) 
-    parcelado = models.BooleanField(default=False)
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    parcelado = models.CharField(
+        choices=PARCELADO_CHOICES, null=True, blank=True)
     qtd_parcelas = models.IntegerField(
         null=True, blank=True)
-    data_aquisicao = models.DateField(null=True, blank=True) 
-
+    data_vencimento = models.DateField(null=True, blank=True)
+    data_aquisicao = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.nome} - {self.valor_diaria}'
@@ -192,6 +198,11 @@ class ContratoAnexo(models.Model):
 
 
 class Transacoes(models.Model):
+    PARCELADO_CHOICES = [
+        ('sim', 'Sim'),
+        ('nao', 'Não'),
+    ]
+
     STATUS_CHOICES = [
         ('pago', 'Pago'),
         ('entrada', '30% Pago'),
@@ -220,6 +231,7 @@ class Transacoes(models.Model):
 
         ('manual', 'Manual'),
         ('locacao', 'Locação'),
+        ("investimento_brinquedo", "Investimento Brinquedo"),
     ]
 
     FORMA_PAGAMENTO_CHOICES = [
@@ -231,13 +243,16 @@ class Transacoes(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    
+
     locacao = models.ForeignKey(
         'Locacao', null=True, blank=True, on_delete=models.SET_NULL)
     cliente = models.ForeignKey(
         'Cliente', null=True, blank=True, on_delete=models.SET_NULL)
+    brinquedo = models.ForeignKey(
+        Brinquedo, null=True, blank=True, on_delete=models.SET_NULL)
     data_transacao = models.DateField()
     data_vencimento = models.DateField(null=True, blank=True)
+    data_aquisicao = models.DateField(null=True, blank=True)
     tipo = models.CharField(max_length=8, choices=TIPO_CHOICES)
     valor = models.DecimalField(max_digits=8, decimal_places=2)
     categoria = models.CharField(max_length=12, choices=CATEGORIA_CHOICES)
@@ -245,12 +260,15 @@ class Transacoes(models.Model):
     forma_pagamento = models.CharField(
         max_length=20, choices=FORMA_PAGAMENTO_CHOICES, null=True, blank=True)
     descricao = models.TextField(null=True, blank=True)
-    origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES)
-    parcelamento_total = models.IntegerField(null=True, blank=True)
-    parcelamento_num = models.IntegerField(null=True, blank=True)
+    parcelado = models.CharField(
+        choices=PARCELADO_CHOICES, null=True, blank=True)
+    origem = models.CharField(max_length=23, choices=ORIGEM_CHOICES)
+    qtd_parcelas = models.IntegerField(null=True, blank=True)
+    parcelas_atual = models.IntegerField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
-    data_vencimento = models.DateField(null=True, blank=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    
+    
 
     class Meta:
         verbose_name = "Transação"
@@ -258,7 +276,7 @@ class Transacoes(models.Model):
         ordering = ['-data_transacao', 'id']
 
     def __str__(self):
-        return f'{self.id} - {self.data_transacao} - {self.tipo} - {self.valor} - {self.categoria} - {self.status}'
+        return f'{self.id} - {self.data_transacao} - {self.tipo} - {self.valor} - {self.categoria}'
 
     @classmethod
     def saldo_ate(cls, data):
