@@ -109,12 +109,12 @@ class Locacao(models.Model):
 
     PAGAMENTO_CHOICES = [
         ('nao_pago', 'Não Pago'),
-        ('entrada', '30% Pago'),
+        ('entrada', 'Entrada Paga'),
         ('pago', 'Pago'),
     ]
 
     STATUS_CHOICES = [
-        ('pendente', 'Pendente'),  # Agendado, mas ainda sem sinal (30%)
+        ('pendente', 'Pendente'),  # Agendado, mas ainda sem sinal
         ('confirmado', 'Confirmado'),  # Pagamento parcial feito
         ('montado', 'Montado'),  # Brinquedos já estão no local e montados
         ('recolher', 'Recolher'),  # Festa acabou, falta recolher os brinquedos
@@ -210,7 +210,7 @@ class Transacoes(models.Model):
 
     STATUS_CHOICES = [
         ('pago', 'Pago'),
-        ('entrada', '30% Pago'),
+        ('entrada', 'Entrada'),
         ('nao_pago', 'Não Pago'),
         ('planejado', 'Planejado'),
         ('cancelado', 'Cancelado'),
