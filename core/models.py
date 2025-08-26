@@ -165,20 +165,25 @@ class Locacao(models.Model):
     complemento = models.CharField(
         max_length=100, null=True, blank=True)  # Opcional
 
+    def save(self, *args, **kwargs):
+        """Sempre recalcula o valor_restante baseado no total e entrada."""
+        entrada = self.valor_entrada or Decimal("0.00")
+        self.valor_restante = (self.valor_total or Decimal("0.00")) - entrada
+        super().save(*args, **kwargs)
+
     @property
     def valor_total_calculado(self):
+        """Calcula total em tempo real (sem salvar)."""
         total_brinquedos = sum(b.valor_diaria for b in self.brinquedos.all())
         return total_brinquedos + (self.acrescimos or Decimal('0.00')) - (self.descontos or Decimal('0.00'))
 
     @property
     def valor_saldo(self):
-        # Se o pagamento for 'entrada' considera valor_entrada pago, se for 'pago' o total
         if self.pagamento == 'entrada':
             return self.valor_total - self.valor_entrada
         elif self.pagamento == 'pago':
             return Decimal('0.00')
-        else:
-            return self.valor_total
+        return self.valor_total
 
     def __str__(self):
         try:
@@ -243,7 +248,7 @@ class Transacoes(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-
+    referencia_id = models.IntegerField(null=True, blank=True)
     locacao = models.ForeignKey(
         'Locacao', null=True, blank=True, on_delete=models.SET_NULL)
     cliente = models.ForeignKey(
@@ -264,11 +269,9 @@ class Transacoes(models.Model):
         choices=PARCELADO_CHOICES, null=True, blank=True)
     origem = models.CharField(max_length=23, choices=ORIGEM_CHOICES)
     qtd_parcelas = models.IntegerField(null=True, blank=True)
-    parcelas_atual = models.IntegerField(null=True, blank=True)
+    parcela_atual = models.IntegerField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-    
-    
 
     class Meta:
         verbose_name = "Transação"
@@ -288,4 +291,4 @@ class Transacoes(models.Model):
 
     @property
     def is_parcela(self):
-        return self.parcelamento_total and self.parcelamento_total > 1
+        return self.qtd_parcelas and self.qtd_parcelas > 1

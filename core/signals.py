@@ -4,6 +4,23 @@ from .models import Locacao, Transacoes, Brinquedo
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
+from django.db.models.signals import m2m_changed
+
+@receiver(m2m_changed, sender=Locacao.brinquedos.through)
+def atualizar_valores(sender, instance, action, **kwargs):
+    if action in ["post_add", "post_remove", "post_clear"]:
+        total_brinquedos = sum(
+            b.valor_diaria for b in instance.brinquedos.all())
+        instance.valor_total = total_brinquedos + \
+            (instance.acrescimos or Decimal('0.00')) - \
+            (instance.descontos or Decimal('0.00'))
+
+        # Se não foi informado entrada, sugere 30%
+        if not instance.valor_entrada or instance.valor_entrada == Decimal("0.00"):
+            instance.valor_entrada = instance.valor_total * Decimal("0.3")
+
+        instance.valor_restante = instance.valor_total - instance.valor_entrada
+        instance.save()
 
 
 @receiver(post_save, sender=Locacao)
@@ -28,8 +45,7 @@ def sync_locacao_to_transacao(sender, instance, created, **kwargs):
                 categoria="aluguel",
                 pagamento=instance.pagamento,
                 descricao=f"Parcela {i}/{qtd_parcelas} da locação {instance.id}",
-                parcelamento_total=qtd_parcelas,
-                parcelamento_num=i,
+                qtd_parcelas=qtd_parcelas,
             )
     else:
         # Atualiza apenas a primeira transação ou todas?
@@ -107,9 +123,9 @@ def sync_brinquedo_to_transacao(sender, instance, created, **kwargs):
     # Busca transações já criadas para esse brinquedo
     transacoes_existentes = list(Transacoes.objects.filter(
         origem="investimento_brinquedo",
-        parcelamento_total=qtd_parcelas,
+        qtd_parcelas=qtd_parcelas,
         descricao__icontains=f"(ID {instance.id})"
-    ).order_by("parcelamento_num"))
+    ).order_by("parcela_atual"))
 
     for i in range(1, qtd_parcelas + 1):
         data_parcela = data_base + \
@@ -133,8 +149,8 @@ def sync_brinquedo_to_transacao(sender, instance, created, **kwargs):
                 categoria="investimento",
                 pagamento="planejado",
                 descricao=f"Parcela {i}/{qtd_parcelas} do Brinquedo {instance.nome} (ID {instance.id})",
-                parcelamento_total=qtd_parcelas,
-                parcelamento_num=i,
+                qtd_parcelas=qtd_parcelas,
+                parcela_atual=i,
                 data_transacao=data_parcela,
             )
 

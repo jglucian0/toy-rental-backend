@@ -364,7 +364,58 @@ class TransacoesListCreateAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = TransacoesSerializer(data=request.data)
+        data = request.data.copy()
+        parcelado = data.get("parcelado", "nao")
+        qtd_parcelas = int(data.get("qtd_parcelas") or 1)
+
+        # Caso parcelado = sim → cria várias
+        if parcelado == "sim" and qtd_parcelas > 1:
+            valor_total = Decimal(data["valor"])
+            valor_parcela = (
+                valor_total / qtd_parcelas).quantize(Decimal("0.01"))
+
+            primeira_data = datetime.strptime(
+                data["data_transacao"], "%Y-%m-%d").date()
+            referencia_id = None
+            transacoes_criadas = []
+
+            for i in range(1, qtd_parcelas + 1):
+                data_parcela = primeira_data + relativedelta(months=i-1)
+
+                transacao = Transacoes.objects.create(
+                    cliente_id=data.get("cliente"),
+                    locacao_id=data.get("locacao"),
+                    brinquedo_id=data.get("brinquedo"),
+                    data_transacao=data_parcela,
+                    tipo=data["tipo"],
+                    valor=valor_parcela,
+                    categoria=data["categoria"],
+                    pagamento=data["pagamento"],
+                    forma_pagamento=data.get("forma_pagamento"),
+                    descricao=f"{data.get('descricao', '')} - Parcela {i}/{qtd_parcelas}",
+                    parcelado="sim",
+                    origem=data.get("origem", "manual"),
+                    qtd_parcelas=qtd_parcelas,
+                    parcela_atual=i,
+                    referencia_id=referencia_id
+                )
+
+                # define referencia_id na primeira e atualiza
+                if referencia_id is None:
+                    referencia_id = transacao.id
+                    transacao.referencia_id = referencia_id
+                    transacao.save()
+
+                transacoes_criadas.append(transacao)
+
+            return Response(
+                {"message": "Transações parceladas criadas com sucesso",
+                 "ids": [t.id for t in transacoes_criadas]},
+                status=status.HTTP_201_CREATED
+            )
+
+        # Caso comum (não parcelado)
+        serializer = TransacoesSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
