@@ -26,18 +26,9 @@ class CustomUserAdmin(BaseUserAdmin):
 
 # Cancela o registro do modelo User padrão
 admin.site.unregister(User)
-
 # Registra o User novamente com nosso CustomUserAdmin
 admin.site.register(User, CustomUserAdmin)
-
-# Registra os outros modelos para que apareçam no admin
-admin.site.register(Organization)
-# Também registramos separadamente para visualização
-admin.site.register(Profile)
 admin.site.register(Convite)
-admin.site.register(Brinquedo)
-admin.site.register(Locacao)
-admin.site.register(Transacoes)
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
