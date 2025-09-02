@@ -30,6 +30,24 @@ admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Convite)
 
+
+@admin.register(Convite)
+class ConviteAdmin(admin.ModelAdmin):
+    list_display = ('email', 'organization_name',
+                    'token', 'aceito', 'criado_em')
+    list_filter = ('aceito', 'organization')
+    search_fields = ('email', 'organization__name')
+    list_per_page = 20
+
+    # Função para exibir o nome da organização de forma segura
+    def organization_name(self, obj):
+        if obj.organization:
+            return obj.organization.name
+        return "Nenhuma"
+    organization_name.short_description = 'Organização'
+    
+    
+
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "owner", "created_at")
