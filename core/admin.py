@@ -28,7 +28,6 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 # Registra o User novamente com nosso CustomUserAdmin
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(Convite)
 
 
 @admin.register(Convite)
