@@ -47,17 +47,17 @@ class Profile(models.Model):
         return f"{self.user.username} ({org_name} - {self.get_role_display()})"
 
 
-class Convite(models.Model):
-    email = models.EmailField()
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    aceito = models.BooleanField(default=False)
-    criado_em = models.DateTimeField(auto_now_add=True)
+#class Convite(models.Model):
+#    email = models.EmailField()
+#    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+##    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+  #  aceito = models.BooleanField(default=False)
+  #  criado_em = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
+#    def __str__(self):
         # Esta verificação impede o erro se a organização for nula
-        org_name = self.organization.name if self.organization else "Sem Organização"
-        return f"Convite para {self.email} na {org_name}"
+     #   org_name = self.organization.name if self.organization else "Sem Organização"
+      #  return f"Convite para {self.email} na {org_name}"
     
 
 

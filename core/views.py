@@ -19,8 +19,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Sum, Count, F, Q, DecimalField, CharField
 from django.db.models.functions import Coalesce, TruncMonth
 from dateutil.relativedelta import relativedelta
-from .models import Convite, Profile
-from .serializers import ConviteSerializer
 
 User = get_user_model()
 
@@ -51,88 +49,6 @@ def LoginCreateAPIView(request):
 
     return Response({'error': 'Usuário ou senha inválidos'}, status=401)
 
-
-class InviteUserAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        # Garante que apenas um admin pode convidar
-        if not request.user.profile or request.user.profile.role != 'admin':
-            return Response(
-                {"erro": "Apenas administradores podem convidar usuários."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        email = request.data.get('email')
-        if not email:
-            return Response({"erro": "O email é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Verifica se já existe um usuário com este email
-        User = get_user_model()
-        if User.objects.filter(email=email).exists():
-            return Response({"erro": "Um usuário com este email já existe."}, status=status.HTTP_400_BAD_REQUEST)
-
-        organization = request.user.profile.organization
-
-        # Cria o convite
-        convite = Convite.objects.create(
-            email=email, organization=organization)
-
-        # TODO: Enviar um e-mail para o usuário convidado
-        # Aqui você adicionaria a lógica para enviar um e-mail com o link do convite.
-        # Exemplo do link: https://happykidsmr.netlify.app/registrar-convite/{convite.token}
-        print(
-            f"Link do convite para {email}: /registrar-convite/{convite.token}")
-
-        return Response(
-            {"sucesso": "Convite enviado com sucesso.", "token": convite.token},
-            status=status.HTTP_201_CREATED
-        )
-
-
-# NOVA VIEW PARA O NOVO USUÁRIO ACEITAR O CONVITE E SE CADASTRAR
-class AcceptInviteAPIView(APIView):
-    permission_classes = [AllowAny]  # Permite acesso para usuários não logados
-
-    def post(self, request, *args, **kwargs):
-        token = request.data.get('token')
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        if not all([token, username, password]):
-            return Response(
-                {"erro": "Token, username e password são obrigatórios."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Encontra o convite
-        try:
-            convite = Convite.objects.get(token=token, aceito=False)
-        except Convite.DoesNotExist:
-            return Response({"erro": "Convite inválido ou já utilizado."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Cria o novo usuário
-        User = get_user_model()
-        if User.objects.filter(username=username).exists():
-            return Response({"erro": "Este nome de usuário já está em uso."}, status=status.HTTP_400_BAD_REQUEST)
-
-        novo_usuario = User.objects.create_user(
-            username=username,
-            email=convite.email,
-            password=password
-        )
-
-        # O signal 'create_user_profile' já criou o Profile. Agora vamos atualizá-lo.
-        profile = novo_usuario.profile
-        profile.organization = convite.organization
-        profile.role = 'membro'
-        profile.save()
-
-        # Marca o convite como utilizado
-        convite.aceito = True
-        convite.save()
-
-        return Response({"sucesso": "Usuário registrado com sucesso!"}, status=status.HTTP_201_CREATED)
 
 
 # Cliente API
