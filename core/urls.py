@@ -15,6 +15,8 @@ from .views import (
     TransacoesListCreateAPIView,
     TransacoesDetailAPIView,
     DashboardAPIView,
+    InviteUserAPIView,
+    AcceptInviteAPIView,
 )
 
 urlpatterns = [
@@ -72,4 +74,7 @@ urlpatterns = [
          name='transacoes-detail'),
 
     path('dashboard/', DashboardAPIView.as_view(), name='dashboard-stats'),
+    
+    path('convites/', InviteUserAPIView.as_view(), name='enviar-convite'),
+    path('convites/aceitar/', AcceptInviteAPIView.as_view(), name='aceitar-convite'),
 ]

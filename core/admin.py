@@ -1,6 +1,43 @@
 from django.contrib import admin
-from .models import Cliente, Brinquedo, Locacao, Transacoes, Organization, Profile
+from .models import Cliente, Brinquedo, Locacao, Transacoes, Organization, Profile, Convite
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
 
+
+# Define um 'inline' para o modelo Profile
+# Isso permite editar o Profile na mesma página do User
+class ProfileInline(admin.StackedInline):
+    model = Profile
+    can_delete = False
+    verbose_name_plural = 'Profile'
+    fk_name = 'user'
+
+# Define uma nova classe UserAdmin
+
+
+class CustomUserAdmin(BaseUserAdmin):
+    inlines = (ProfileInline,)
+
+    def get_inline_instances(self, request, obj=None):
+        if not obj:
+            return list()
+        return super().get_inline_instances(request, obj)
+
+
+# Cancela o registro do modelo User padrão
+admin.site.unregister(User)
+
+# Registra o User novamente com nosso CustomUserAdmin
+admin.site.register(User, CustomUserAdmin)
+
+# Registra os outros modelos para que apareçam no admin
+admin.site.register(Organization)
+# Também registramos separadamente para visualização
+admin.site.register(Profile)
+admin.site.register(Convite)
+admin.site.register(Brinquedo)
+admin.site.register(Locacao)
+admin.site.register(Transacoes)
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):

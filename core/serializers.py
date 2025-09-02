@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Cliente, Brinquedo, Locacao, ContratoAnexo, Transacoes
+from .models import Cliente, Brinquedo, Locacao, ContratoAnexo, Transacoes, Convite
 
 
 # Serializa todos os campos do Cliente + exibe status legível (ex: 'ativo' → 'Ativo')
@@ -12,6 +12,12 @@ class ClienteSerializer(serializers.ModelSerializer):
 
     def get_status_display(self, obj):
         return obj.get_status_display()
+
+
+class ConviteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Convite
+        fields = ['email', 'organization', 'token', 'aceito']
 
 
 # Serializa todos os campos do Brinquedo + status e voltagem legíveis

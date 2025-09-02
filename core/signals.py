@@ -11,11 +11,12 @@ from .models import Profile, Organization
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
+    """
+    Este signal agora APENAS cria um Profile vazio quando um novo User é criado.
+    A associação com uma Organization e o 'role' serão definidos na view.
+    """
     if created:
-        # Se não tiver organização ainda, cria uma default só pra esse user
-        org = Organization.objects.create(
-            name=f"Org de {instance.username}", owner=instance)
-        Profile.objects.create(user=instance, organization=org)
+        Profile.objects.create(user=instance)
 
 
 @receiver(m2m_changed, sender=Locacao.brinquedos.through)
