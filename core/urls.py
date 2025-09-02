@@ -15,8 +15,6 @@ from .views import (
     TransacoesListCreateAPIView,
     TransacoesDetailAPIView,
     DashboardAPIView,
-    InviteUserAPIView,
-    AcceptInviteAPIView,
 )
 
 urlpatterns = [
