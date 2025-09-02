@@ -10,7 +10,7 @@ import uuid
 class Organization(models.Model):
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(
-        User, related_query_name='owned_organizations')
+        User, on_delete=models.CASCADE, related_query_name='owned_organizations')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -26,7 +26,7 @@ class Profile(models.Model):
     # --------------------------
 
     user = models.OneToOneField(
-        User, related_name="profile"
+        User, on_delete=models.CASCADE, related_name="profile"
     )
     # --- Faça este ajuste ---
     # Adicione null=True e blank=True para permitir que um Profile
