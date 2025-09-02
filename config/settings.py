@@ -50,7 +50,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1').split(',')
 CORS_ALLOWED_ORIGINS = [
     "https://happykidsmr.netlify.app",
-    "http://localhost:5173",  # Seu localhost, se usa Vite
+    "http://localhost:5173",
 ]
 
 # Aplicativos instalados
@@ -138,18 +138,34 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Se AWS_STORAGE_BUCKET_NAME estiver definido, use S3. Senão, use o local (para dev).
+# Se AWS_STORAGE_BUCKET_NAME estiver definido, usa S3. Senão, usa o local.
 if config('AWS_STORAGE_BUCKET_NAME', default=None):
+    # Configurações AWS
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME')
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 
-    # Configuração para arquivos de mídia (uploads)
-    if 'STORAGES' not in locals():
-        STORAGES = {}
-    STORAGES['default'] = {'BACKEND': 'storages.backends.s3.S3Storage'}
+    # Dicionário de STORAGES para produção (S3 + WhiteNoise)
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Dicionário de STORAGES para desenvolvimento local
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
 # Idioma e fuso horário
 LANGUAGE_CODE = 'pt-br'
