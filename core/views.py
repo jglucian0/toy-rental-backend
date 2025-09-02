@@ -15,7 +15,10 @@ from django.utils.text import slugify
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.db.models import Sum, Count, F, Q, DecimalField, CharField
+from django.db.models.functions import Coalesce, TruncMonth
+from dateutil.relativedelta import relativedelta
 
 User = get_user_model()
 
@@ -501,3 +504,160 @@ class TransacoesDetailAPIView(APIView):
         transacao = get_object_or_404(Transacoes, id=id, organization=request.user.profile.organization)
         transacao.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DashboardAPIView(APIView):
+    """
+    Endpoint único que calcula e retorna todas as estatísticas
+    necessárias para o dashboard.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        org = request.user.profile.organization
+        hoje = date.today()
+
+        # --- SEÇÃO 1: CÁLCULOS GERAIS PARA OS STAT CARDS ---
+        investimento_total = Brinquedo.objects.filter(organization=org).aggregate(
+            total=Coalesce(Sum('valor_compra'), Decimal(
+                '0.00'), output_field=DecimalField())
+        )['total']
+
+        receita_acumulada = Transacoes.objects.filter(
+            organization=org, tipo='entrada', pagamento__in=['pago', 'entrada']
+        ).aggregate(
+            total=Coalesce(Sum('valor'), Decimal('0.00'),
+                           output_field=DecimalField())
+        )['total']
+
+        despesa_total = Transacoes.objects.filter(
+            organization=org, tipo='saida', pagamento='pago'
+        ).aggregate(
+            total=Coalesce(Sum('valor'), Decimal('0.00'),
+                           output_field=DecimalField())
+        )['total']
+
+        roi_global = Decimal('0.00')
+        if investimento_total > 0:
+            lucro = receita_acumulada - despesa_total
+            roi_global = (lucro / investimento_total) * 100
+
+        # --- SEÇÃO 2: CÁLCULOS POR BRINQUEDO (PARA AS DUAS TABELAS) ---
+        roi_por_brinquedo = []
+        previsao_break_even = []  # Lista para a segunda tabela
+
+        brinquedos = Brinquedo.objects.filter(organization=org)
+        for brinquedo in brinquedos:
+            # --- Bloco de cálculo para ROI ---
+            receita_brinquedo = Transacoes.objects.filter(
+                locacao__brinquedos=brinquedo, tipo='entrada', pagamento__in=['pago', 'entrada']
+            ).aggregate(total=Coalesce(Sum('valor'), Decimal('0.00')))['total']
+
+            manutencao_brinquedo = Transacoes.objects.filter(
+                brinquedo=brinquedo, tipo='saida', categoria='manutencao', pagamento='pago'
+            ).aggregate(total=Coalesce(Sum('valor'), Decimal('0.00')))['total']
+
+            investimento = brinquedo.valor_compra or Decimal('0.00')
+            custo_total_brinquedo = investimento + manutencao_brinquedo
+
+            roi_brinquedo = Decimal('0.00')
+            if custo_total_brinquedo > 0:
+                lucro_brinquedo = receita_brinquedo - custo_total_brinquedo
+                roi_brinquedo = (lucro_brinquedo / custo_total_brinquedo) * 100
+
+            roi_por_brinquedo.append({
+                'id': brinquedo.id, 'nome': brinquedo.nome, 'valor_compra': investimento,
+                'manutencao_acumulada': manutencao_brinquedo, 'receita_acumulada': receita_brinquedo,
+                'roi_percentual': roi_brinquedo, 'status': brinquedo.get_status_display(),
+            })
+
+            # --- Bloco de cálculo para BREAK-EVEN ---
+            primeira_locacao = Locacao.objects.filter(
+                brinquedos=brinquedo).order_by('data_festa').first()
+            receita_mensal_media = Decimal('0.00')
+            if primeira_locacao:
+                meses_operacao = (hoje.year - primeira_locacao.data_festa.year) * \
+                    12 + hoje.month - primeira_locacao.data_festa.month + 1
+                if meses_operacao > 0:
+                    receita_mensal_media = receita_brinquedo / meses_operacao
+
+            previsao_payback_str = "N/A"
+            if custo_total_brinquedo > receita_brinquedo:
+                if receita_mensal_media > 0:
+                    valor_faltante = custo_total_brinquedo - receita_brinquedo
+                    meses_faltantes = valor_faltante / receita_mensal_media
+                    previsao_payback_str = f"{meses_faltantes:.1f} meses"
+                else:
+                    previsao_payback_str = "Nunca (sem receita)"
+            else:
+                previsao_payback_str = "Já pago"
+
+            previsao_break_even.append({
+                'id': brinquedo.id, 'nome': brinquedo.nome, 'investimento_total': custo_total_brinquedo,
+                'receita_mensal_media': receita_mensal_media, 'receita_acumulada_atual': receita_brinquedo,
+                'previsao_payback': previsao_payback_str,
+            })
+
+        # --- SEÇÃO 3: CÁLCULOS PARA OS GRÁFICOS ---
+
+        # Gráfico 'Receita x Despesa'
+        transacoes_por_mes = Transacoes.objects.filter(
+            organization=org, pagamento__in=['pago', 'entrada']
+        ).annotate(mes=TruncMonth('data_transacao')).values('mes').annotate(
+            receita=Coalesce(Sum('valor', filter=Q(
+                tipo='entrada')), Decimal('0.00')),
+            despesa=Coalesce(
+                Sum('valor', filter=Q(tipo='saida')), Decimal('0.00'))
+        ).order_by('mes')
+        chart_receita_despesa = [{'mes': i['mes'].strftime('%b/%Y'), 'Receita': float(
+            i['receita']), 'Despesa': float(i['despesa'])} for i in transacoes_por_mes]
+
+        # Gráfico 'Brinquedos mais alugados'
+        ranking_brinquedos = Brinquedo.objects.filter(organization=org).annotate(
+            total_alugueis=Count('locacao')).filter(total_alugueis__gt=0).order_by('-total_alugueis')[:5]
+        chart_ranking_brinquedos = [
+            {'nome': b.nome, 'Aluguéis': b.total_alugueis} for b in ranking_brinquedos]
+
+        # Gráfico 'Despesas por categoria'
+        despesas_por_categoria = Transacoes.objects.filter(organization=org, tipo='saida', pagamento='pago').values(
+            'categoria').annotate(total=Sum('valor')).order_by('-total')
+        categoria_choices = dict(Transacoes.CATEGORIA_CHOICES)
+        chart_despesas_categoria = [{'name': categoria_choices.get(
+            i['categoria'], i['categoria']), 'value': float(i['total'])} for i in despesas_por_categoria]
+
+        # Gráfico 'Saldo acumulado'
+        transacoes_ordenadas = Transacoes.objects.filter(
+            organization=org, pagamento__in=['pago', 'entrada']).order_by('data_transacao')
+        saldo_atual, saldo_por_mes = Decimal('0.00'), {}
+        for transacao in transacoes_ordenadas:
+            saldo_atual += transacao.valor if transacao.tipo == 'entrada' else -transacao.valor
+            saldo_por_mes[transacao.data_transacao.strftime(
+                '%Y-%m')] = saldo_atual
+        chart_saldo_acumulado = [{'mes': date(int(mes_ano.split('-')[0]), int(mes_ano.split('-')[1]), 1).strftime(
+            '%b/%Y'), 'Saldo': float(saldo)} for mes_ano, saldo in sorted(saldo_por_mes.items())]
+
+        # Gráfico 'Receita por brinquedo'
+        receita_por_brinquedo_query = Brinquedo.objects.filter(organization=org).annotate(
+            total_receita=Coalesce(Sum('locacao__transacoes__valor', filter=Q(
+                locacao__transacoes__tipo='entrada', locacao__transacoes__pagamento__in=['pago', 'entrada'])), Decimal('0.00'))
+        ).filter(total_receita__gt=0).order_by('-total_receita')[:10]
+        chart_receita_brinquedo = [{'nome': b.nome, 'Receita': float(
+            b.total_receita)} for b in receita_por_brinquedo_query]
+
+        # --- SEÇÃO 4: MONTAR RESPOSTA FINAL ---
+        data = {
+            'stat_cards': {
+                'investimento_total': investimento_total,
+                'receita_acumulada': receita_acumulada,
+                'roi_global': roi_global,
+            },
+            'tabela_roi_brinquedo': roi_por_brinquedo,
+            'tabela_break_even': previsao_break_even,  # Adicionada!
+            'chart_receita_despesa': chart_receita_despesa,
+            'chart_ranking_brinquedos': chart_ranking_brinquedos,
+            'chart_despesas_categoria': chart_despesas_categoria,
+            'chart_saldo_acumulado': chart_saldo_acumulado,
+            'chart_receita_brinquedo': chart_receita_brinquedo,
+        }
+
+        return Response(data)

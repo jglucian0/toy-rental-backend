@@ -14,6 +14,7 @@ from .views import (
     ContratoAnexoAPIView,
     TransacoesListCreateAPIView,
     TransacoesDetailAPIView,
+    DashboardAPIView,
 )
 
 urlpatterns = [
@@ -69,4 +70,6 @@ urlpatterns = [
     # Detalhes, edição ou exclusão de uma transação específica
     path('transacoes/<int:id>/', TransacoesDetailAPIView.as_view(),
          name='transacoes-detail'),
+
+    path('dashboard/', DashboardAPIView.as_view(), name='dashboard-stats'),
 ]
