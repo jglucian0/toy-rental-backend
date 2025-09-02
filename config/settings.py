@@ -3,6 +3,39 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+from django.contrib.auth import get_user_model
+
+
+@receiver(post_migrate)
+def create_superuser_on_migrate(sender, **kwargs):
+    """
+    Cria um superusuário automaticamente após as migrações,
+    se as variáveis de ambiente estiverem definidas e o usuário não existir.
+    """
+    # Garante que o sinal só rode para a app 'core' para evitar duplicidade
+    if sender.name == 'core':
+        User = get_user_model()
+        username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+        email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+        password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+
+        if not all([username, email, password]):
+            print(
+                'Variáveis de ambiente para superusuário não definidas. Pulando criação.')
+            return
+
+        if User.objects.filter(username=username).exists():
+            print(
+                f"Superusuário '{username}' já existe. Nenhuma ação foi tomada.")
+        else:
+            print(f"Criando superusuário '{username}'...")
+            User.objects.create_superuser(
+                username=username, email=email, password=password)
+            print(f"Superusuário '{username}' criado com sucesso!")
+
+
 # Diretório base do projeto
 BASE_DIR = Path(__file__).resolve().parent.parent
 
