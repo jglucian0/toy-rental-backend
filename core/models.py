@@ -55,7 +55,9 @@ class Convite(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Convite para {self.email} na {self.organization.name}"
+        org_name = self.organization.name if self.organization else "Organização Deletada/Nula"
+        return f"Convite para {self.email} na {org_name}"
+    
 
 
 class Cliente(models.Model):
