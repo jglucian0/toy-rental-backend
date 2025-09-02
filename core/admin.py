@@ -30,19 +30,18 @@ admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
 
-@admin.register(Convite)
-class ConviteAdmin(admin.ModelAdmin):
-    list_display = ('email', 'organization_name',
-                    'token', 'aceito', 'criado_em')
-    list_filter = ('aceito', 'organization')
-    search_fields = ('email', 'organization__name')
-
-    # Esta função exibe o nome da organização de forma segura na lista
-    def organization_name(self, obj):
-        if obj.organization:
-            return obj.organization.name
-        return "Nenhuma"
-    organization_name.short_description = 'Organização'
+# @admin.register(Convite)
+#class ConviteAdmin(admin.ModelAdmin):
+ #   list_display = ('email', 'organization_name',
+ #                   'token', 'aceito', 'criado_em')
+ #   list_filter = ('aceito', 'organization')
+ ##   search_fields = ('email', 'organization__name')
+#
+#    def organization_name(self, obj):
+#        if obj.organization:
+#            return obj.organization.name
+#        return "Nenhuma"
+#    organization_name.short_description = 'Organização'
     
     
 
