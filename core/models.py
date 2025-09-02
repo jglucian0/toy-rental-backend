@@ -55,7 +55,8 @@ class Convite(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        org_name = self.organization.name if self.organization else "Organização Deletada/Nula"
+        # Esta verificação impede o erro se a organização for nula
+        org_name = self.organization.name if self.organization else "Sem Organização"
         return f"Convite para {self.email} na {org_name}"
     
 

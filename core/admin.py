@@ -36,9 +36,8 @@ class ConviteAdmin(admin.ModelAdmin):
                     'token', 'aceito', 'criado_em')
     list_filter = ('aceito', 'organization')
     search_fields = ('email', 'organization__name')
-    list_per_page = 20
 
-    # Função para exibir o nome da organização de forma segura
+    # Esta função exibe o nome da organização de forma segura na lista
     def organization_name(self, obj):
         if obj.organization:
             return obj.organization.name
