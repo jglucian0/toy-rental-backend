@@ -45,9 +45,9 @@ admin.site.register(User, CustomUserAdmin)
     
     
 
-@admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "owner", "created_at")
+#@admin.register(Organization)
+#class OrganizationAdmin(admin.ModelAdmin):
+#    list_display = ("id", "name", "owner", "created_at")
 
 
 @admin.register(Profile)
