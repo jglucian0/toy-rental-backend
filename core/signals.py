@@ -9,14 +9,14 @@ from django.contrib.auth.models import User
 from .models import Profile, Organization
 
 
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    """
-    Este signal agora APENAS cria um Profile vazio quando um novo User é criado.
-    A associação com uma Organization e o 'role' serão definidos na view.
-    """
-    if created:
-        Profile.objects.create(user=instance)
+#@receiver(post_save, sender=User)
+#def create_user_profile(sender, instance, created, **kwargs):
+#    """
+#    Este signal agora APENAS cria um Profile vazio quando um novo User é criado.
+#    A associação com uma Organization e o 'role' serão definidos na view.
+#    """
+#    if created:
+#        Profile.objects.create(user=instance)
 
 
 @receiver(m2m_changed, sender=Locacao.brinquedos.through)
