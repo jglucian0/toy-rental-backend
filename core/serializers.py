@@ -26,6 +26,10 @@ class BrinquedoSerializer(serializers.ModelSerializer):
     )
     qtd_total = serializers.IntegerField(allow_null=True, required=False)
     qtd_disponivel = serializers.IntegerField(allow_null=True, required=False)
+    energia = serializers.CharField(allow_blank=True, required=False)
+    voltagem = serializers.CharField(allow_blank=True, required=False)
+    inflavel = serializers.CharField(allow_blank=True, required=False)
+    descricao = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = Brinquedo
@@ -59,6 +63,10 @@ class LocacaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Locacao
         fields = '__all__'
+        
+        extra_kwargs = {
+            'organization': {'read_only': True}
+        }
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

@@ -1,10 +1,10 @@
+from urllib import request as url_request
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser
 from .models import Cliente, Brinquedo, Locacao, ContratoAnexo, Transacoes
 from .serializers import ClienteSerializer, BrinquedoSerializer, LocacaoSerializer, ContratoAnexoSerializer, TransacoesSerializer
@@ -12,20 +12,54 @@ from xhtml2pdf import pisa
 from decimal import Decimal
 from datetime import datetime, date
 from django.utils.text import slugify
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate, get_user_model
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 
+User = get_user_model()
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def LoginCreateAPIView(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    if not email or not password:
+        return Response({'error': 'Email e senha são obrigatórios'}, status=400)
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': 'Usuário ou senha inválidos'}, status=401)
+
+    user = authenticate(username=user.username, password=password)
+    if user:
+        token, created = Token.objects.get_or_create(user=user)
+        # pega a organização do profile do usuário
+        organization_id = user.profile.organization.id
+        return Response({
+            'token': token.key,
+            'organization_id': organization_id
+        })
+
+    return Response({'error': 'Usuário ou senha inválidos'}, status=401)
 
 # Cliente API
 # Lista todos os clientes ou cria um novo
 class ClienteListCreateAPIView(APIView):
     def get(self, request):
-        clientes = Cliente.objects.all()
+        org = request.user.profile.organization
+        clientes = Cliente.objects.filter(organization=org)
         serializer = ClienteSerializer(clientes, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        org = request.user.profile.organization
         serializer = ClienteSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -33,7 +67,8 @@ class ClienteListCreateAPIView(APIView):
 # Lista só os clientes com status "ativo"
 class ClientesAtivosAPIView(APIView):
     def get(self, request):
-        clientes = Cliente.objects.filter(status='ativo')
+        org = request.user.profile.organization
+        clientes = Cliente.objects.filter(status='ativo', organization=org)
         serializer = ClienteSerializer(clientes, many=True)
         return Response(serializer.data)
 
@@ -41,20 +76,24 @@ class ClientesAtivosAPIView(APIView):
 # Detalhe, edição e exclusão de cliente específico
 class ClienteDetailAPIView(APIView):
     def get(self, request, id):
-        cliente = get_object_or_404(Cliente, id=id)
+        cliente = get_object_or_404(
+            Cliente, id=id, organization=request.user.profile.organization)
         serializer = ClienteSerializer(cliente)
         return Response(serializer.data)
 
     def put(self, request, id):
-        cliente = get_object_or_404(Cliente, id=id)
+        org = request.user.profile.organization
+        cliente = get_object_or_404(
+            Cliente, id=id, organization=request.user.profile.organization)
         serializer = ClienteSerializer(cliente, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id):
-        cliente = get_object_or_404(Cliente, id=id)
+        cliente = get_object_or_404(
+            Cliente, id=id, organization=request.user.profile.organization)
         cliente.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -63,14 +102,16 @@ class ClienteDetailAPIView(APIView):
 # Lista todos os brinquedos ou cria um novo
 class BrinquedoListCreateAPIView(APIView):
     def get(self, request):
-        brinquedos = Brinquedo.objects.all()
+        org = request.user.profile.organization
+        brinquedos = Brinquedo.objects.filter(organization=org)
         serializer = BrinquedoSerializer(brinquedos, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        org = request.user.profile.organization
         serializer = BrinquedoSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -78,20 +119,24 @@ class BrinquedoListCreateAPIView(APIView):
 # Detalhe, edição e exclusão de brinquedo específico
 class BrinquedoDetailAPIView(APIView):
     def get(self, request, id):
-        brinquedo = get_object_or_404(Brinquedo, id=id)
+        brinquedo = get_object_or_404(
+            Brinquedo, id=id, organization=request.user.profile.organization)
         serializer = BrinquedoSerializer(brinquedo)
         return Response(serializer.data)
 
     def put(self, request, id):
-        brinquedo = get_object_or_404(Brinquedo, id=id)
+        org = request.user.profile.organization
+        brinquedo = get_object_or_404(
+            Brinquedo, id=id, organization=request.user.profile.organization)
         serializer = BrinquedoSerializer(brinquedo, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data)
         return Response({"erro": "Dados inválidos"}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id):
-        brinquedo = get_object_or_404(Brinquedo, id=id)
+        brinquedo = get_object_or_404(
+            Brinquedo, id=id, organization=request.user.profile.organization)
         brinquedo.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -114,7 +159,9 @@ class BrinquedosDisponiveisAPIView(APIView):
             return Response({"erro": "Formato de data inválido."}, status=400)
 
         # Busca os brinquedos que já estão locados nesse período
+        org = request.user.profile.organization
         locacoes_conflitantes = Locacao.objects.filter(
+            organization=org,
             data_festa__lte=data_desmontagem,
             data_desmontagem__gte=data_festa
         ).prefetch_related('brinquedos')
@@ -126,8 +173,9 @@ class BrinquedosDisponiveisAPIView(APIView):
                 loc.brinquedos.values_list('id', flat=True))
 
         # Filtra brinquedos que NÃO estão nesses IDs
-        brinquedos_disponiveis = Brinquedo.objects.exclude(
-            id__in=ids_indisponiveis)
+        brinquedos_disponiveis = Brinquedo.objects.filter(
+            organization=org
+        ).exclude(id__in=ids_indisponiveis)
         serializer = BrinquedoSerializer(brinquedos_disponiveis, many=True)
         return Response(serializer.data)
 
@@ -136,7 +184,9 @@ class BrinquedosDisponiveisAPIView(APIView):
 # Lista todas as locações ou cria uma nova
 class LocacoesListCreateAPIView(APIView):
     def get(self, request):
-        locacoes = Locacao.objects.all().order_by('data_festa')
+        org = request.user.profile.organization
+        locacoes = Locacao.objects.filter(
+            organization=org).order_by('data_festa')
         serializer = LocacaoSerializer(locacoes, many=True)
         return Response(serializer.data)
 
@@ -144,11 +194,12 @@ class LocacoesListCreateAPIView(APIView):
         if request.data.get("data_festa") > request.data.get("data_desmontagem"):
             return Response({"erro": "A data da festa não pode ser posterior à data de desmontagem."}, status=400)
 
-        locacoes = LocacaoSerializer(data=request.data)
-        if locacoes.is_valid():
-            locacoes.save()
-            return Response(locacoes.data, status=status.HTTP_201_CREATED)
-        return Response(locacoes.errors, status=status.HTTP_400_BAD_REQUEST)
+        org = request.user.profile.organization
+        serializer = LocacaoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(organization=org)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_destroy(self, instance):
         # Cancela ou exclui a transação associada antes de excluir a locação
@@ -174,7 +225,7 @@ class LocacoesDetailAPIView(APIView):
     # Busca a locação ou retorna None
     def get_object(self, id):
         try:
-            return Locacao.objects.get(id=id)
+            return Locacao.objects.get(id=id, organization=self.request.user.profile.organization)
         except Locacao.DoesNotExist:
             return None
 
@@ -186,16 +237,18 @@ class LocacoesDetailAPIView(APIView):
         return Response(serializer.data)
 
     def put(self, request, id):
+        org = request.user.profile.organization
         locacao = self.get_object(id)
         if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
         serializer = LocacaoSerializer(locacao, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data)
         return Response({'erro': 'Dados inválidos'}, status=400)
 
     def patch(self, request, id):
+        org = request.user.profile.organization
         locacao = self.get_object(id)
         if not locacao:
             return Response({'erro': 'Locação não encontrada'}, status=404)
@@ -218,7 +271,7 @@ class LocacoesDetailAPIView(APIView):
         # Usa partial=True para não exigir todos os campos obrigatórios
         serializer = LocacaoSerializer(locacao, data=data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
@@ -251,7 +304,8 @@ class LocacoesDetailAPIView(APIView):
 class LocacoesStatusUpdateAPIView(APIView):
     def patch(self, request, id):
         try:
-            locacao = Locacao.objects.get(id=id)
+            locacao = Locacao.objects.get(
+                id=id, organization=self.request.user.profile.organization)
         except Locacao.DoesNotExist:
             return Response({'erro': 'Locação não encontrada'}, status=404)
 
@@ -270,7 +324,7 @@ class ContratoLocacaoPDFView(APIView):
     def get(self, request, locacao_id):
         try:
             locacao = Locacao.objects.select_related(
-                'cliente').get(id=locacao_id)
+                'cliente').get(id=locacao_id, organization=request.user.profile.organization)
             brinquedos = locacao.brinquedos.all()
             brinquedo_nomes = ", ".join([b.nome for b in brinquedos])
 
@@ -359,12 +413,16 @@ class ContratoAnexoAPIView(APIView):
 # Transações
 class TransacoesListCreateAPIView(APIView):
     def get(self, request):
-        transacoes = Transacoes.objects.all().order_by('-data_transacao')
+        org = request.user.profile.organization
+        transacoes = Transacoes.objects.filter(
+            organization=org).order_by('-data_transacao')
         serializer = TransacoesSerializer(transacoes, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        org = request.user.profile.organization
         data = request.data.copy()
+        data["organization"] = org.id
         parcelado = data.get("parcelado", "nao")
         qtd_parcelas = int(data.get("qtd_parcelas") or 1)
 
@@ -383,6 +441,7 @@ class TransacoesListCreateAPIView(APIView):
                 data_parcela = primeira_data + relativedelta(months=i-1)
 
                 transacao = Transacoes.objects.create(
+                    organization=org,
                     cliente_id=data.get("cliente"),
                     locacao_id=data.get("locacao"),
                     brinquedo_id=data.get("brinquedo"),
@@ -404,7 +463,7 @@ class TransacoesListCreateAPIView(APIView):
                 if referencia_id is None:
                     referencia_id = transacao.id
                     transacao.referencia_id = referencia_id
-                    transacao.save()
+                    serializer.save(organization=org)
 
                 transacoes_criadas.append(transacao)
 
@@ -417,26 +476,28 @@ class TransacoesListCreateAPIView(APIView):
         # Caso comum (não parcelado)
         serializer = TransacoesSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=org)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TransacoesDetailAPIView(APIView):
     def get(self, request, id):
-        transacao = get_object_or_404(Transacoes, id=id)
+        transacao = get_object_or_404(
+            Transacoes, id=id, organization=request.user.profile.organization)
         serializer = TransacoesSerializer(transacao)
         return Response(serializer.data)
 
     def put(self, request, id):
-        transacao = get_object_or_404(Transacoes, id=id)
+        transacao = get_object_or_404(
+            Transacoes, id=id, organization=request.user.profile.organization)
         serializer = TransacoesSerializer(transacao, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(organization=request.user.profile.organization)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id):
-        transacao = get_object_or_404(Transacoes, id=id)
+        transacao = get_object_or_404(Transacoes, id=id, organization=request.user.profile.organization)
         transacao.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

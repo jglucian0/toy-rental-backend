@@ -1,11 +1,35 @@
 from django.db import models
 from django.utils.timezone import make_aware
+from django.contrib.auth.models import User
 from datetime import datetime
 from decimal import Decimal
 from django.db.models import Sum
 
 
+class Organization(models.Model):
+    name = models.CharField(max_length=200)
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_query_name='owned_organizations')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+    
+
+class Profile(models.Model):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="profile")
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="users")
+
+    def __str__(self):
+        return f"{self.user.username} ({self.organization.name})"
+
+
 class Cliente(models.Model):
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="clientes"
+    )
     # Opções pro campo 'status' (usado pra exibir no select e no display)
     STATUS_CHOICES = [
         ('ativo', 'Ativo'),
@@ -34,6 +58,12 @@ class Cliente(models.Model):
 
 
 class Brinquedo(models.Model):
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="brinquedos",
+        null=True,
+        blank=True
+    )
+
     PARCELADO_CHOICES = [
         ('sim', 'Sim'),
         ('nao', 'Não'),
@@ -128,6 +158,9 @@ class Locacao(models.Model):
         ('pix', 'Pix'),
     ]
 
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="locacoes"
+    )
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT)
     brinquedos = models.ManyToManyField(Brinquedo)
     data_festa = models.DateField()
@@ -247,14 +280,17 @@ class Transacoes(models.Model):
         ('boleto', 'Boleto'),
     ]
 
-    id = models.AutoField(primary_key=True)
-    referencia_id = models.IntegerField(null=True, blank=True)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="transacoes"
+    )
     locacao = models.ForeignKey(
         'Locacao', null=True, blank=True, on_delete=models.SET_NULL)
     cliente = models.ForeignKey(
         'Cliente', null=True, blank=True, on_delete=models.SET_NULL)
     brinquedo = models.ForeignKey(
         Brinquedo, null=True, blank=True, on_delete=models.SET_NULL)
+    id = models.AutoField(primary_key=True)
+    referencia_id = models.IntegerField(null=True, blank=True)
     data_transacao = models.DateField()
     data_vencimento = models.DateField(null=True, blank=True)
     data_aquisicao = models.DateField(null=True, blank=True)

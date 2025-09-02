@@ -5,6 +5,18 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from django.db.models.signals import m2m_changed
+from django.contrib.auth.models import User
+from .models import Profile, Organization
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        # Se não tiver organização ainda, cria uma default só pra esse user
+        org = Organization.objects.create(
+            name=f"Org de {instance.username}", owner=instance)
+        Profile.objects.create(user=instance, organization=org)
+
 
 @receiver(m2m_changed, sender=Locacao.brinquedos.through)
 def atualizar_valores(sender, instance, action, **kwargs):
@@ -36,6 +48,7 @@ def sync_locacao_to_transacao(sender, instance, created, **kwargs):
             data_parcela = instance.data_festa + relativedelta(months=i-1)
 
             Transacoes.objects.create(
+                organization=instance.organization,
                 locacao=instance,
                 cliente=instance.cliente,
                 origem='locacao',
@@ -57,6 +70,7 @@ def sync_locacao_to_transacao(sender, instance, created, **kwargs):
         for i, t in enumerate(transacoes, start=1):
             t.data_transacao = instance.data_festa + relativedelta(months=i-1)
             t.valor = valor_parcela
+            t.organization = instance.organization
             t.pagamento = instance.pagamento
             t.cliente = instance.cliente
             t.descricao = f"Parcela {i}/{qtd_parcelas} da locação {instance.id}"
@@ -70,7 +84,12 @@ def sync_transacao_to_locacao(sender, instance, created, **kwargs):
     Sempre que uma Transacao de origem 'locacao' for atualizada,
     garante que o pagamento da Locacao acompanhe.
     """
-    if instance.origem == 'locacao' and instance.locacao:
+    # Adicione a condição "instance.pagamento != 'cancelado'"
+    if (
+        instance.origem == 'locacao' and
+        instance.locacao and
+        instance.pagamento != 'cancelado'  # <<-- AQUI ESTÁ A MUDANÇA
+    ):
         locacao = instance.locacao
         if locacao.pagamento != instance.pagamento:
             locacao.pagamento = instance.pagamento
@@ -81,11 +100,13 @@ def sync_transacao_to_locacao(sender, instance, created, **kwargs):
 def cancelar_transacao_com_locacao(sender, instance, **kwargs):
     """
     Quando uma Locacao for deletada/cancelada,
-    marca a Transacao associada como cancelada em vez de sumir.
+    marca TODAS as Transacoes associadas como canceladas.
     """
-    transacao = Transacoes.objects.filter(
-        locacao=instance, origem="locacao").first()
-    if transacao:
+    # Mude de .first() para .filter() para pegar todas as transações
+    transacoes = Transacoes.objects.filter(locacao=instance, origem="locacao")
+
+    # Percorra todas as transações e cancele uma por uma
+    for transacao in transacoes:
         transacao.pagamento = "cancelado"
         transacao.descricao += " (Cancelada junto com a locação)"
         transacao.save(update_fields=["pagamento", "descricao"])
@@ -102,6 +123,7 @@ def sync_brinquedo_to_transacao(sender, instance, created, **kwargs):
 
     qtd_parcelas = instance.qtd_parcelas or 1
     valor_total = Decimal(instance.valor_compra)
+    org = instance.organization
 
     if not created:
         old = sender.objects.get(pk=instance.pk)
@@ -134,6 +156,7 @@ def sync_brinquedo_to_transacao(sender, instance, created, **kwargs):
         if i <= len(transacoes_existentes):
             # Atualiza parcela existente
             t = transacoes_existentes[i-1]
+            t.organization = org
             t.valor = valor_parcela
             t.data_transacao = data_parcela
             t.descricao = f"Parcela {i}/{qtd_parcelas} do Brinquedo {instance.nome} (ID {instance.id})"
@@ -141,6 +164,7 @@ def sync_brinquedo_to_transacao(sender, instance, created, **kwargs):
         else:
             # Cria nova parcela
             Transacoes.objects.create(
+                organization=org,
                 cliente=None,
                 brinquedo=instance,
                 origem="investimento_brinquedo",
@@ -153,6 +177,7 @@ def sync_brinquedo_to_transacao(sender, instance, created, **kwargs):
                 parcela_atual=i,
                 data_transacao=data_parcela,
             )
+
 
 @receiver(pre_delete, sender=Brinquedo)
 def cancelar_transacao_brinquedo(sender, instance, **kwargs):

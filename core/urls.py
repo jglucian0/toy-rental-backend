@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    LoginCreateAPIView,
     ClienteListCreateAPIView,
     ClienteDetailAPIView,
     ClientesAtivosAPIView,
@@ -16,6 +17,9 @@ from .views import (
 )
 
 urlpatterns = [
+    # Login do usuário
+    path('login/', LoginCreateAPIView, name='login'),
+
     # Lista todos os clientes ou cria um novo
     path('clientes/', ClienteListCreateAPIView.as_view(),
          name='cliente-list-create'),
