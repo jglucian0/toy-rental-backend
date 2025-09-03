@@ -49,8 +49,8 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Pega os hosts permitidos do .env e transforma em uma lista
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1').split(',')
 CORS_ALLOWED_ORIGINS = [
-    "https://happykidsmr.netlify.app",
-    "http://localhost:5173",
+    "https://happykidsmr.netlify.app/",
+    "http://localhost:8080",
 ]
 
 # Aplicativos instalados
