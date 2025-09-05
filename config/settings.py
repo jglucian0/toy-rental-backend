@@ -1,26 +1,62 @@
 import os
 from pathlib import Path
+from decouple import config
+import dj_database_url
+
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+from django.contrib.auth import get_user_model
+
+
+@receiver(post_migrate)
+def create_superuser_on_migrate(sender, **kwargs):
+    """
+    Cria um superusuário automaticamente após as migrações,
+    se as variáveis de ambiente estiverem definidas e o usuário não existir.
+    """
+    # Garante que o sinal só rode para a app 'core' para evitar duplicidade
+    if sender.name == 'core':
+        User = get_user_model()
+        username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+        email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+        password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+
+        if not all([username, email, password]):
+            print(
+                'Variáveis de ambiente para superusuário não definidas. Pulando criação.')
+            return
+
+        if User.objects.filter(username=username).exists():
+            print(
+                f"Superusuário '{username}' já existe. Nenhuma ação foi tomada.")
+        else:
+            print(f"Criando superusuário '{username}'...")
+            User.objects.create_superuser(
+                username=username, email=email, password=password)
+            print(f"Superusuário '{username}' criado com sucesso!")
+
 
 # Diretório base do projeto
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Chave secreta
-SECRET_KEY = 'django-insecure-(k3nm6*l%my#zzqy@i$pz0hxjm(#ak^nw9h9r_#eb2bvd2#b1c'
+SECRET_KEY = config('SECRET_KEY')
 
 # Ativa modo debug
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Lista de hosts permitidos
-ALLOWED_HOSTS = []
-CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOWED_ORIGINS = [
-#"http://localhost:8080",
-#"http://127.0.0.1:8080",
-#]
+# Pega os hosts permitidos do .env e transforma em uma lista
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1').split(',')
+CORS_ALLOWED_ORIGINS = [
+    "https://happykidsmr.netlify.app",
+    "http://localhost:5173",
+]
 
 # Aplicativos instalados
 INSTALLED_APPS = [
     'corsheaders',
+    'storages',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -47,6 +83,7 @@ REST_FRAMEWORK = {
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,11 +119,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Configuração do banco de dados (padrão: SQLite)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL')
+    )
 }
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#        'NAME': BASE_DIR / 'db.sqlite3',
+#    }
+#}
 
 # Validação de senha
 AUTH_PASSWORD_VALIDATORS = [
@@ -96,6 +138,35 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# Se AWS_STORAGE_BUCKET_NAME estiver definido, usa S3. Senão, usa o local.
+if config('AWS_STORAGE_BUCKET_NAME', default=None):
+    # Configurações AWS
+    AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME')
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+    # Dicionário de STORAGES para produção (S3 + WhiteNoise)
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Dicionário de STORAGES para desenvolvimento local
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
 # Idioma e fuso horário
 LANGUAGE_CODE = 'pt-br'
 TIME_ZONE = 'America/Sao_Paulo'
@@ -104,6 +175,14 @@ USE_TZ = True
 
 # Caminho dos arquivos estáticos (CSS, JS, imagens)
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 
 # Tipo de campo de ID padrão para novos modelos
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
