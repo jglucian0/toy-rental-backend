@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework import serializers
 from .models import Cliente, Brinquedo, Locacao, ContratoAnexo, Transacoes
 
@@ -12,6 +13,8 @@ class ClienteSerializer(serializers.ModelSerializer):
 
     def get_status_display(self, obj):
         return obj.get_status_display()
+
+
 
 
 # Serializa todos os campos do Brinquedo + status e voltagem legíveis
@@ -134,6 +137,24 @@ class TransacoesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transacoes
         fields = '__all__'
+        
+    def create(self, validated_data):
+        parcelado = validated_data.get('parcelado')
+        qtd_parcelas = validated_data.get('qtd_parcelas', 1)
+
+        # Se for parcelado, calcula o valor correto para a primeira parcela
+        if parcelado == 'sim' and qtd_parcelas and qtd_parcelas > 1:
+            valor_total = validated_data.get('valor', Decimal('0.00'))
+
+            # Calcula o valor da parcela e o atualiza nos dados a serem salvos
+            valor_parcela = (
+                valor_total / qtd_parcelas).quantize(Decimal("0.01"))
+            validated_data['valor'] = valor_parcela
+
+        # Chama o método 'create' original da classe pai para salvar
+        # a transação (agora com o valor da parcela, se aplicável)
+        instance = super().create(validated_data)
+        return instance
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)

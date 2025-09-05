@@ -50,7 +50,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1').split(',')
 CORS_ALLOWED_ORIGINS = [
     "https://happykidsmr.netlify.app",
-    "http://localhost:5173",
+    "http://localhost:8080",
 ]
 
 # Aplicativos instalados
@@ -72,7 +72,6 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

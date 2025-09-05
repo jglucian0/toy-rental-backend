@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from datetime import datetime
 from decimal import Decimal
 from django.db.models import Sum
+import uuid
 
 
 class Organization(models.Model):
@@ -14,16 +15,50 @@ class Organization(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 
 class Profile(models.Model):
+    # --- Adicione esta parte ---
+    ROLE_CHOICES = [
+        ('admin', 'Admin'),      # Dono/Gerente da Organização
+        ('membro', 'Membro'),    # Funcionário convidado
+    ]
+    # --------------------------
+
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="profile")
+        User, on_delete=models.CASCADE, related_name="profile"
+    )
+    # --- Faça este ajuste ---
+    # Adicione null=True e blank=True para permitir que um Profile
+    # seja criado antes de ter uma organização associada.
     organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name="users")
+        Organization, on_delete=models.CASCADE, related_name="profiles", null=True, blank=True
+    )
+    # -----------------------
+
+    # --- Adicione este novo campo ---
+    role = models.CharField(
+        max_length=10, choices=ROLE_CHOICES, default='membro')
+    # ------------------------------
 
     def __str__(self):
-        return f"{self.user.username} ({self.organization.name})"
+        # Melhora o __str__ para não dar erro se a organização for nula
+        org_name = self.organization.name if self.organization else "Sem Organização"
+        return f"{self.user.username} ({org_name} - {self.get_role_display()})"
+
+
+#class Convite(models.Model):
+#    email = models.EmailField()
+#    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+##    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+  #  aceito = models.BooleanField(default=False)
+  #  criado_em = models.DateTimeField(auto_now_add=True)
+
+#    def __str__(self):
+        # Esta verificação impede o erro se a organização for nula
+     #   org_name = self.organization.name if self.organization else "Sem Organização"
+      #  return f"Convite para {self.email} na {org_name}"
+    
 
 
 class Cliente(models.Model):

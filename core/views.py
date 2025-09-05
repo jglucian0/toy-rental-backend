@@ -49,6 +49,8 @@ def LoginCreateAPIView(request):
 
     return Response({'error': 'Usuário ou senha inválidos'}, status=401)
 
+
+
 # Cliente API
 # Lista todos os clientes ou cria um novo
 class ClienteListCreateAPIView(APIView):
@@ -423,66 +425,15 @@ class TransacoesListCreateAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        org = request.user.profile.organization
         data = request.data.copy()
-        data["organization"] = org.id
-        parcelado = data.get("parcelado", "nao")
-        qtd_parcelas = int(data.get("qtd_parcelas") or 1)
+        data["organization"] = request.user.profile.organization.id
 
-        # Caso parcelado = sim → cria várias
-        if parcelado == "sim" and qtd_parcelas > 1:
-            valor_total = Decimal(data["valor"])
-            valor_parcela = (
-                valor_total / qtd_parcelas).quantize(Decimal("0.01"))
-
-            primeira_data = datetime.strptime(
-                data["data_transacao"], "%Y-%m-%d").date()
-            referencia_id = None
-            transacoes_criadas = []
-
-            for i in range(1, qtd_parcelas + 1):
-                data_parcela = primeira_data + relativedelta(months=i-1)
-
-                transacao = Transacoes.objects.create(
-                    organization=org,
-                    cliente_id=data.get("cliente"),
-                    locacao_id=data.get("locacao"),
-                    brinquedo_id=data.get("brinquedo"),
-                    data_transacao=data_parcela,
-                    tipo=data["tipo"],
-                    valor=valor_parcela,
-                    categoria=data["categoria"],
-                    pagamento=data["pagamento"],
-                    forma_pagamento=data.get("forma_pagamento"),
-                    descricao=f"{data.get('descricao', '')} - Parcela {i}/{qtd_parcelas}",
-                    parcelado="sim",
-                    origem=data.get("origem", "manual"),
-                    qtd_parcelas=qtd_parcelas,
-                    parcela_atual=i,
-                    referencia_id=referencia_id
-                )
-
-                # define referencia_id na primeira e atualiza
-                if referencia_id is None:
-                    referencia_id = transacao.id
-                    transacao.referencia_id = referencia_id
-                    serializer.save(organization=org)
-
-                transacoes_criadas.append(transacao)
-
-            return Response(
-                {"message": "Transações parceladas criadas com sucesso",
-                 "ids": [t.id for t in transacoes_criadas]},
-                status=status.HTTP_201_CREATED
-            )
-
-        # Caso comum (não parcelado)
         serializer = TransacoesSerializer(data=data)
+
         if serializer.is_valid():
-            serializer.save(organization=org)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class TransacoesDetailAPIView(APIView):
     def get(self, request, id):
@@ -490,6 +441,18 @@ class TransacoesDetailAPIView(APIView):
             Transacoes, id=id, organization=request.user.profile.organization)
         serializer = TransacoesSerializer(transacao)
         return Response(serializer.data)
+    
+    def patch(self, request, id):
+        transacao = get_object_or_404(
+            Transacoes, id=id, organization=request.user.profile.organization)
+        
+        serializer = TransacoesSerializer(
+            transacao, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save(organization=request.user.profile.organization)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, id):
         transacao = get_object_or_404(

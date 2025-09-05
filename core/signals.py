@@ -9,13 +9,59 @@ from django.contrib.auth.models import User
 from .models import Profile, Organization
 
 
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        # Se não tiver organização ainda, cria uma default só pra esse user
-        org = Organization.objects.create(
-            name=f"Org de {instance.username}", owner=instance)
-        Profile.objects.create(user=instance, organization=org)
+@receiver(post_save, sender=Transacoes)
+def criar_parcelas_manuais(sender, instance, created, **kwargs):
+    """
+    Cria as parcelas restantes para uma transação MANUAL recém-criada de forma segura.
+    """
+    if not created:
+        return
+
+    # Roda apenas se for uma transação MANUAL, PARCELADA e com mais de 1 parcela
+    if not (
+        instance.origem == 'manual' and
+        instance.parcelado == 'sim' and
+        instance.qtd_parcelas and
+        instance.qtd_parcelas > 1
+    ):
+        return
+
+    # PREVENÇÃO DE LOOP INFINITO:
+    # Age apenas sobre a primeira parcela criada pelo usuário.
+    if instance.parcela_atual != 1:
+        return
+
+    # Dados base da primeira parcela
+    descricao_base = instance.descricao.split(' (Parcela')[0]
+    valor_total = instance.valor * instance.qtd_parcelas
+    valor_parcela = (
+        valor_total / instance.qtd_parcelas).quantize(Decimal("0.01"))
+
+    # Loop para criar as parcelas restantes (da 2ª em diante)
+    for i in range(2, instance.qtd_parcelas + 1):
+        data_nova_parcela = instance.data_transacao + relativedelta(months=i-1)
+
+        # Cria um objeto completamente novo em vez de "clonar" o existente
+        Transacoes.objects.create(
+            # Copia os campos relevantes da primeira parcela
+            organization=instance.organization,
+            locacao=instance.locacao,
+            cliente=instance.cliente,
+            brinquedo=instance.brinquedo,
+            tipo=instance.tipo,
+            categoria=instance.categoria,
+            pagamento=instance.pagamento,  # ou 'planejado' se preferir
+            origem=instance.origem,
+            parcelado=instance.parcelado,
+            referencia_id=instance.referencia_id,
+
+            # Define os campos específicos desta nova parcela
+            valor=valor_parcela,
+            qtd_parcelas=instance.qtd_parcelas,
+            parcela_atual=i,
+            data_transacao=data_nova_parcela,
+            descricao=f"{descricao_base} (Parcela {i}/{instance.qtd_parcelas})"
+        )
 
 
 @receiver(m2m_changed, sender=Locacao.brinquedos.through)
