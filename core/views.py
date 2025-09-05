@@ -492,6 +492,18 @@ class TransacoesDetailAPIView(APIView):
             Transacoes, id=id, organization=request.user.profile.organization)
         serializer = TransacoesSerializer(transacao)
         return Response(serializer.data)
+    
+    def patch(self, request, id):
+        transacao = get_object_or_404(
+            Transacoes, id=id, organization=request.user.profile.organization)
+        
+        serializer = TransacoesSerializer(
+            transacao, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save(organization=request.user.profile.organization)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, id):
         transacao = get_object_or_404(
